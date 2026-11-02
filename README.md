@@ -45,7 +45,7 @@ To test via Wrangler's local emulator, run `npx wrangler d1 migrations apply gro
 
 ## Before inviting the public
 
-- Edit `public/privacy.html` to include a valid operator support contact and your actual data retention practices.
+- Review `public/privacy.html` and confirm its operator contact details, service providers and data retention practices are still accurate before public launch.
 - Test deleting cards and make sure the organiser understands that their **URL with `&key=` grants admin rights**. Only use the in-app **Copy invite link** button for contributors.
 - Protect public endpoints against automated spam with Cloudflare's available bot controls / Turnstile before large-scale promotion, and consider adding per-message deletion/moderation.
 - Card links are *unlisted*, not encrypted or access-controlled. Anyone with the invite link can read the card. Don't put secrets or sensitive information in messages.
