@@ -1,6 +1,8 @@
 name = "groupnote"
+account_id = "08d8ddc27a29a683aa5ecc02bef60d62"
 main = "src/worker.js"
 compatibility_date = "2026-10-01"
+workers_dev = true
 
 [assets]
 directory = "./public"
@@ -11,5 +13,5 @@ not_found_handling = "single-page-application"
 [[d1_databases]]
 binding = "DB"
 database_name = "groupnote-db"
-database_id = "REPLACE_WITH_DATABASE_ID"
+database_id = "03655de8-b192-4ee9-ab47-bb66b1274d18"
 migrations_dir = "migrations"

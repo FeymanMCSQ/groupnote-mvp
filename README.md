@@ -28,14 +28,31 @@ Open `http://localhost:8787`. Data is stored in `.local-demo.sqlite` and persist
 
 ## Deploy live on Cloudflare Workers + D1
 
-Cloudflare offers a free-tier Workers plan and a D1 free tier (within limits). You need a free Cloudflare account, Node.js and npm. This project has not been deployed to your Cloudflare account.
+Live application: **https://groupnote.sssafiullahhh.workers.dev**
 
-1. Run `npm install` to get Wrangler.
+Deployed on 3 November 2026 (Australia/Sydney) to the account's confirmed Workers Free plan. The Worker is `groupnote`, with the existing `DB` binding pointing to production D1 database `groupnote-db`. The account and database IDs are configured in `wrangler.toml`; these IDs are not credentials. Migration `0001_init.sql` has been applied. `RATE_SALT` is configured as a Cloudflare Worker secret and is not stored in this repository.
+
+For routine updates to this deployment:
+
+```bash
+npm ci
+npx wrangler login
+npx wrangler d1 migrations list groupnote-db --remote
+# Review any pending migrations before applying them:
+npx wrangler d1 migrations apply groupnote-db --remote
+npm run deploy
+```
+
+If browser login cannot reach the localhost callback, use `npx wrangler login --device` and complete the device authorization yourself. Routine deployments preserve the existing Worker secret. Do not recreate the production database or rotate `RATE_SALT` just to redeploy.
+
+For a separate, first-time setup in another Cloudflare account:
+
+1. Run `npm ci` to install the locked Wrangler dependency.
 2. Authenticate with `npx wrangler login`.
-3. Create the database: `npx wrangler d1 create groupnote-db`.
-4. Copy the database **UUID** printed by Cloudflare to `database_id` in `wrangler.toml`. Keep `binding = "DB"`.
+3. Check `npx wrangler d1 list` first. Reuse `groupnote-db` if it exists; otherwise run `npx wrangler d1 create groupnote-db` once.
+4. Configure the target account's `account_id` and the database **UUID** in `wrangler.toml`. Keep `binding = "DB"`.
 5. Apply the SQL migration to the live database: `npx wrangler d1 migrations apply groupnote-db --remote`.
-6. Set an unpredictable daily quota hashing secret: `npx wrangler secret put RATE_SALT` and paste a long random value when prompted.
+6. Configure a cryptographically random daily quota hashing secret using `npx wrangler secret put RATE_SALT`. Never put the secret in source code, Git, or a public message. It is already configured for the live deployment above.
 7. Deploy the app: `npm run deploy`.
 8. Open the resulting `https://groupnote.<your-subdomain>.workers.dev` URL and test with two different browser sessions (or phones): create card, copy **invite link**, sign as a guest, close and reopen.
 
@@ -67,4 +84,6 @@ Share the free tool with ten real card organisers: student societies, project gr
 
 ## Notes
 
-The front-end flows were checked in Chromium using an in-memory browser harness and a local HTTP API. The live API was exercised for card creation, reading, guest messages, owner-only close, closed-card rejection, and deletion. **Cloudflare production deployment and cross-device production tests have not been performed.**
+Local testing covered the card workflows, including organiser deletion. Browser checks confirmed guest-message submission, persistence after reloading, and a one-page PDF preview. Browser automation could not complete every check; the owner subsequently confirmed the application worked during manual local testing.
+
+Production deployment verification on 3 November 2026 (Australia/Sydney) passed for the homepage and all static assets, privacy page, `/api/health`, card creation, anonymous guest contributions, organiser permission enforcement, close/reopen, closed-card rejection, and persistence across independent HTTP reads. A read-only D1 query confirmed the verification card's messages are stored remotely. `RATE_SALT` was verified as a `secret_text` binding without reading its value. The clearly labelled production verification card was retained; no production data was deleted or reset. Cross-device browser testing and PDF export have not been repeated against production.
