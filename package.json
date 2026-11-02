@@ -1,0 +1,16 @@
+{
+  "name": "groupnote-mvp",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:local": "wrangler d1 migrations apply groupnote-db --local",
+    "db:remote": "wrangler d1 migrations apply groupnote-db --remote",
+    "demo": "node --experimental-sqlite test/local-server.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
