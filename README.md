@@ -26,6 +26,26 @@ npm run demo
 
 Open `http://localhost:8787`. Data is stored in `.local-demo.sqlite` and persists across restarts. The local demo is not publicly shareable across the internet.
 
+## Read-only production statistics
+
+With the project's dependencies installed (`npm ci`) and Wrangler authenticated (`npx wrangler login`, or `npx wrangler login --device` if the localhost callback fails), run:
+
+```bash
+npm run stats
+```
+
+This reads the existing production `groupnote-db` configured in `wrangler.toml` using Wrangler. It reports:
+
+- Total currently stored cards.
+- Currently stored cards created in the last 24 hours.
+- Total currently stored contributions (messages).
+- Currently stored cards with at least 3 contributions.
+- Daily card creation counts for the last 14 UTC dates: today (partial) and the previous 13 dates, including days with zero cards.
+
+**Deleted cards and their deleted contributions are not counted. Existing test cards and messages may appear.** These are counts of data still stored, not lifetime usage or unique people. All time windows use UTC, matching the database timestamps; the last-24-hours count is a rolling window.
+
+The command runs only the read-only SELECT queries in `scripts/stats.sql` (including a recursive SELECT to generate the daily dates). A small Node wrapper passes the SQL to Wrangler's `--command` option so it returns the counts without using the SQL-file import workflow. It does not deploy the app, apply migrations, modify production data, or return message content, personal names, credentials or organiser keys. No analytics service, tracking or extra dependencies are used.
+
 ## Deploy live on Cloudflare Workers + D1
 
 Live application: **https://groupnote.sssafiullahhh.workers.dev**
@@ -81,6 +101,7 @@ Share the free tool with ten real card organisers: student societies, project gr
 - `src/worker.js` — server API, quotas, organiser actions
 - `migrations/0001_init.sql` — database schema
 - `test/local-server.mjs` — self-contained local preview backend
+- `scripts/stats.sql` — read-only aggregate queries used by `npm run stats`
 
 ## Notes
 
