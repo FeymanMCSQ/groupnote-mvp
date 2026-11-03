@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 const sql = readFileSync(new URL('./stats.sql', import.meta.url), 'utf8');
 const wrangler = fileURLToPath(new URL('../node_modules/wrangler/bin/wrangler.js', import.meta.url));
 
-console.log('GroupNote production statistics (UTC)');
+console.log('GroupNote production statistics (Australia/Sydney)');
 console.log('Deleted cards and their contributions are excluded; existing test cards may appear.\n');
 
 // --command returns SELECT results; --file uses Wrangler's import workflow.
@@ -35,6 +35,29 @@ function failureMessage(error) {
   return `Could not read statistics${exit}. Retry npm run stats; if it keeps failing, check Wrangler authentication and wrangler.toml.`;
 }
 
+function dailyCardCounts(rows, now = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-AU', {
+    timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit'
+  });
+  const dateKey = date => {
+    const parts = formatter.formatToParts(date);
+    return ['year', 'month', 'day'].map(type => parts.find(part => part.type === type).value).join('-');
+  };
+  const today = dateKey(now);
+  const counts = new Map();
+  for (let ago = 13; ago >= 0; ago--) {
+    // UTC arithmetic here steps calendar labels, not Sydney midnight instants.
+    const day = new Date(`${today}T00:00:00Z`);
+    day.setUTCDate(day.getUTCDate() - ago);
+    counts.set(day.toISOString().slice(0, 10), 0);
+  }
+  for (const {utc_hour, cards_created} of rows) {
+    const day = dateKey(new Date(`${utc_hour.replace(' ', 'T')}Z`));
+    if (counts.has(day)) counts.set(day, counts.get(day) + cards_created);
+  }
+  return Array.from(counts, ([sydney_date, cards_created]) => ({sydney_date, cards_created}));
+}
+
 let statistics;
 for (let attempt = 0; attempt < 2; attempt++) {
   try {
@@ -53,6 +76,6 @@ for (let attempt = 0; attempt < 2; attempt++) {
 if (statistics) {
   const {summary, daily} = statistics;
   for (const {metric, count} of summary.results) console.log(`${metric}: ${count}`);
-  console.log('\nDaily card creation (UTC; today is partial):');
-  console.table(daily.results);
+  console.log('\nDaily card creation (Australia/Sydney; today is partial):');
+  console.table(dailyCardCounts(daily.results));
 }

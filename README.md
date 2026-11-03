@@ -40,11 +40,11 @@ This reads the existing production `groupnote-db` configured in `wrangler.toml` 
 - Currently stored cards created in the last 24 hours.
 - Total currently stored contributions (messages).
 - Currently stored cards with at least 3 contributions.
-- Daily card creation counts for the last 14 UTC dates: today (partial) and the previous 13 dates, including days with zero cards.
+- Daily card creation counts for the last 14 Australia/Sydney dates: today (partial) and the previous 13 dates, including days with zero cards. Daylight saving is handled automatically.
 
-**Deleted cards and their deleted contributions are not counted. Existing test cards and messages may appear.** These are counts of data still stored, not lifetime usage or unique people. All time windows use UTC, matching the database timestamps; the last-24-hours count is a rolling window.
+**Deleted cards and their deleted contributions are not counted. Existing test cards and messages may appear.** These are counts of data still stored, not lifetime usage or unique people. Database timestamps remain UTC; the command converts hourly aggregate counts into Australia/Sydney calendar dates. The last-24-hours count remains a rolling window of 24 elapsed hours, rather than a calendar-day count.
 
-The command runs only the read-only SELECT queries in `scripts/stats.sql` (including a recursive SELECT to generate the daily dates). A small Node wrapper passes the SQL to Wrangler's `--command` option so it returns the counts without using the SQL-file import workflow. It does not deploy the app, apply migrations, modify production data, or return message content, personal names, credentials or organiser keys. No analytics service, tracking or extra dependencies are used.
+The command runs only the read-only SELECT queries in `scripts/stats.sql`. A small Node wrapper passes the SQL to Wrangler's `--command` option, groups the hourly aggregates into Sydney dates and fills zero-count days. It does not deploy the app, apply migrations, modify production data, or return message content, personal names, credentials or organiser keys. No analytics service, tracking or extra dependencies are used.
 
 If a request fails, the command retries once. If both attempts fail, it exits with an error and reports a safe diagnostic for missing Wrangler dependencies, connectivity, authentication or an invalid response, rather than printing raw CLI output. Follow the reported action; an authentication error can be resolved with `npx wrangler login --device`.
 
