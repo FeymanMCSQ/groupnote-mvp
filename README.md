@@ -46,6 +46,8 @@ This reads the existing production `groupnote-db` configured in `wrangler.toml` 
 
 The command runs only the read-only SELECT queries in `scripts/stats.sql` (including a recursive SELECT to generate the daily dates). A small Node wrapper passes the SQL to Wrangler's `--command` option so it returns the counts without using the SQL-file import workflow. It does not deploy the app, apply migrations, modify production data, or return message content, personal names, credentials or organiser keys. No analytics service, tracking or extra dependencies are used.
 
+If a request fails, the command retries once. If both attempts fail, it exits with an error and reports a safe diagnostic for missing Wrangler dependencies, connectivity, authentication or an invalid response, rather than printing raw CLI output. Follow the reported action; an authentication error can be resolved with `npx wrangler login --device`.
+
 ## Deploy live on Cloudflare Workers + D1
 
 Live application: **https://groupnote.sssafiullahhh.workers.dev**
