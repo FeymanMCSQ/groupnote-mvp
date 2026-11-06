@@ -1,4 +1,5 @@
--- Aggregate counts only. Deleted cards are excluded; test cards may be included.
+-- Aggregate counts only. Stored-card metrics exclude deletions; tests may appear.
+-- Acquisition counters are cumulative and remain after card deletion.
 -- Stored timestamps and the rolling 24-hour window are UTC.
 -- This file contains only read-only SELECT queries.
 SELECT 'Total currently stored cards' AS metric, COUNT(*) AS count FROM cards
@@ -18,3 +19,22 @@ FROM cards
 WHERE created_at >= datetime('now', '-14 days') AND created_at <= datetime('now')
 GROUP BY utc_hour
 ORDER BY utc_hour;
+
+-- Acquisition counters (new counters only; no historical backfill).
+SELECT source,
+  SUM(CASE WHEN event = 'landing' THEN count ELSE 0 END) AS landing_sessions,
+  SUM(CASE WHEN event = 'create_open' THEN count ELSE 0 END) AS create_open_sessions,
+  SUM(CASE WHEN event = 'card_created' THEN count ELSE 0 END) AS cards_created
+FROM acquisition_counts
+WHERE source IN ('direct', 'uni_email', 'other')
+GROUP BY source
+ORDER BY source;
+
+SELECT day AS sydney_date, source,
+  SUM(CASE WHEN event = 'landing' THEN count ELSE 0 END) AS landing_sessions,
+  SUM(CASE WHEN event = 'create_open' THEN count ELSE 0 END) AS create_open_sessions,
+  SUM(CASE WHEN event = 'card_created' THEN count ELSE 0 END) AS cards_created
+FROM acquisition_counts
+WHERE day >= date('now', '-14 days') AND source IN ('direct', 'uni_email', 'other')
+GROUP BY day, source
+ORDER BY day, source;

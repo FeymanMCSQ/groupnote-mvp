@@ -9,17 +9,16 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
 import worker from '../src/worker.js';
+import {sqliteBinding} from './d1.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const dbPath=process.env.GROUPNOTE_DEMO_DB||path.join(root,'.local-demo.sqlite');
 const port=Number(process.env.PORT||8787);
 const sqlite=new DatabaseSync(dbPath);
 sqlite.exec('PRAGMA foreign_keys=ON;');
-sqlite.exec(fs.readFileSync(path.join(root,'migrations','0001_init.sql'),'utf8'));
-const binding={prepare(sql){return {bind(...args){const statement=sqlite.prepare(sql);return {
- async first(){return statement.get(...args)||null},
- async all(){return {results:statement.all(...args)}},
- async run(){const result=statement.run(...args);return {meta:{changes:result.changes}}}
-}}}}};
+for(const file of fs.readdirSync(path.join(root,'migrations')).filter(file=>file.endsWith('.sql')).sort()){
+ sqlite.exec(fs.readFileSync(path.join(root,'migrations',file),'utf8'));
+}
+const binding=sqliteBinding(sqlite);
 const MIME={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.ico':'image/x-icon'};
 const env={DB:binding,RATE_SALT:'local-demo-salt',ASSETS:{async fetch(request){let pathname=new URL(request.url).pathname;
   let file=path.join(root,'public',pathname==='/'?'index.html':pathname);
@@ -30,7 +29,7 @@ const env={DB:binding,RATE_SALT:'local-demo-salt',ASSETS:{async fetch(request){l
 const handleRequest=async(req,res)=>{
  try{
   const body=[];for await(const c of req)body.push(c);
-  const url=`http://127.0.0.1:${port}${req.url}`;
+  const url=`http://${req.headers.host||`127.0.0.1:${port}`}${req.url}`;
   const request=new Request(url,{method:req.method,headers:{...req.headers,'cf-connecting-ip':req.socket.remoteAddress||'127.0.0.1'},body:['GET','HEAD'].includes(req.method)?undefined:Buffer.concat(body)});
   const r=await worker.fetch(request,env);
   res.writeHead(r.status,Object.fromEntries(r.headers));res.end(Buffer.from(await r.arrayBuffer()));

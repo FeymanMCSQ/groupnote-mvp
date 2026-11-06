@@ -9,7 +9,8 @@
     "db:local": "wrangler d1 migrations apply groupnote-db --local",
     "db:remote": "wrangler d1 migrations apply groupnote-db --remote",
     "demo": "node --experimental-sqlite test/local-server.mjs",
-    "stats": "node scripts/stats.mjs"
+    "stats": "node scripts/stats.mjs",
+    "test": "node --experimental-sqlite --experimental-vm-modules --test test/acquisition.test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

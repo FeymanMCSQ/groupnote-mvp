@@ -1,3 +1,99 @@
+// A browser-only opt-out contains no identifier and is never stored in D1.
+const analyticsPreference = (() => {
+  let excluded = false, notice = '';
+  try {
+    const choice = new URLSearchParams(location.search).get('analytics');
+    if (choice === 'off') {
+      excluded = true;
+      notice = 'Analytics excluded in this browser. Reload other open GroupNote tabs.';
+      try { localStorage.setItem('groupnote-analytics-excluded', '1'); }
+      catch { notice = 'Analytics excluded for this page only; browser storage is blocked.'; }
+    } else if (choice === 'on') {
+      localStorage.removeItem('groupnote-analytics-excluded');
+      notice = 'Analytics enabled in this browser. Reload other open GroupNote tabs.';
+    } else {
+      excluded = localStorage.getItem('groupnote-analytics-excluded') === '1';
+      if (excluded) notice = 'Analytics excluded in this browser.';
+    }
+  } catch {} // Storage restrictions must not stop normal use.
+  return {excluded, notice};
+})();
+
+// Optional analytics: initialization and sending failures never block the app.
+const acquisition = (() => {
+  if (analyticsPreference.excluded) return {source: 'direct', track() {}};
+  try {
+    // Keep campaign labels in sync with src/worker.js.
+    const sources = new Set(['direct', 'uni_email', 'other']);
+    const normalize = value => value == null ? 'direct' : sources.has(value) ? value : 'other';
+    const params = new URLSearchParams(location.search);
+    let source = 'direct';
+    try { source = normalize(sessionStorage.getItem('groupnote-source')); } catch {}
+    if (!params.has('card') && !params.has('key') && params.has('src')) source = normalize(params.get('src'));
+    try { sessionStorage.setItem('groupnote-source', source); } catch {}
+    const seen = new Set();
+    const formatter = new Intl.DateTimeFormat('en-AU', {
+      timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+    function track(view) {
+      try {
+        const event = {home: 'landing', create: 'create_open'}[view];
+        if (!event || (view === 'home' && new URLSearchParams(location.search).has('card'))) return;
+        const parts = formatter.formatToParts(new Date());
+        const day = ['year', 'month', 'day'].map(type => parts.find(part => part.type === type).value).join('-');
+        const key = `groupnote-acquisition:${day}:${source}:${event}`;
+        if (seen.has(key)) return;
+        try { if (sessionStorage.getItem(key) === '1') return; } catch {}
+        seen.add(key);
+        try { sessionStorage.setItem(key, '1'); } catch {}
+        // Never send the page URL/referrer, a session ID, or any card/form data.
+        void fetch('/api/acquisition', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({event, source}), credentials: 'omit',
+          referrerPolicy: 'no-referrer', keepalive: true
+        }).catch(() => {});
+      } catch {} // Analytics must not interrupt navigation or card forms.
+    }
+    return {source, track};
+  } catch { return {source: 'direct', track() {}}; }
+})();
+
+// Per-card tab-session event IDs deduplicate refreshes; no visitor ID is used.
+const lifecycle = (() => {
+  const invites = new Map();
+  const token = () => {
+    try { return Array.from(crypto.getRandomValues(new Uint8Array(24)), x => x.toString(16).padStart(2,'0')).join(''); }
+    catch { return null; }
+  };
+  function send(id, event) {
+    try {
+      if (analyticsPreference.excluded || !event.eventId) return;
+      void fetch(`/api/cards/${id}/events`, {method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(event), credentials:'omit', referrerPolicy:'no-referrer', keepalive:true}).catch(()=>{});
+    } catch {}
+  }
+  return {token,
+    invite(id) {
+      try {
+        if (analyticsPreference.excluded || new URLSearchParams(location.search).has('key') || invites.has(id)) return;
+        const storageKey=`groupnote-invite-event:${id}`;
+        let eventId;
+        try { eventId=sessionStorage.getItem(storageKey); } catch {}
+        if (!/^[a-f0-9]{48}$/.test(eventId || '')) eventId=token();
+        if (!eventId) return;
+        invites.set(id,eventId);
+        try { sessionStorage.setItem(storageKey,eventId); } catch {}
+        send(id,{event:'invite_opened',eventId});
+      } catch {}
+    },
+    share(id,method) {
+      const eventId=token();
+      send(id,{event:'share_clicked',eventId,method,outcome:'attempted'});
+      return outcome=>send(id,{event:'share_clicked',eventId,method,outcome});
+    }
+  };
+})();
+
 const $=(selector)=>document.querySelector(selector);
 const $$=(selector)=>[...document.querySelectorAll(selector)];
 const views={home:$('#homeView'),create:$('#createView'),card:$('#cardView'),sample:$('#sampleView')};
@@ -7,6 +103,7 @@ const turn = view => {
   for(const [key,el] of Object.entries(views))el.classList.toggle('hidden',key!==view);
   if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
   window.scrollTo({top:0,behavior:'instant'});
+  acquisition.track(view);
 };
 const toast=(text)=>{clearTimeout(toastTimer);const el=$('#toast');el.textContent=text;el.classList.remove('hidden');toastTimer=setTimeout(()=>el.classList.add('hidden'),3500)};
 const error=(id,text)=>{const el=$(id);el.textContent=text;el.classList.toggle('hidden',!text)};
@@ -40,6 +137,13 @@ $('#navHow').addEventListener('click',e=>{if(!views.home.classList.contains('hid
 $('#year').textContent=new Date().getFullYear();
 
 const form=$('#createForm');
+let createAttempt=null, messageAttempt=null;
+function requestAttempt(fields,previous) {
+ const values=JSON.stringify(fields);
+ const attempt=previous?.values===values?previous:{values,requestId:lifecycle.token()};
+ if(attempt.requestId)fields.requestId=attempt.requestId;
+ return attempt;
+}
 const updatePreview=()=>{
  const title=$('#title').value.trim() || "We'll miss you, Jordan!";
  $('#previewTitle').textContent=title;
@@ -55,11 +159,15 @@ form.addEventListener('submit',async e=>{
  e.preventDefault();error('#createError','');
  const btn=$('#createSubmit');btn.disabled=true;btn.firstChild.textContent='Creating your card… ';
  const fields=Object.fromEntries(new FormData(form));
+ fields.acquisitionSource=acquisition.source;
+ if(analyticsPreference.excluded)fields.excludeFromAnalytics=true;
+ createAttempt=requestAttempt(fields,createAttempt);
  try{
   const result=await api('/api/cards',{method:'POST',body:JSON.stringify(fields)});
   const id=result.id,key=result.ownerKey;
+  createAttempt=null;
   // The organiser's private link includes a key: share the *invite* link, never this one.
-  localStorage.setItem(`groupnote-owner-${id}`,key);
+  try{localStorage.setItem(`groupnote-owner-${id}`,key)}catch{}
   nav('card',`card=${encodeURIComponent(id)}&key=${encodeURIComponent(key)}`);
   toast('Your card is ready. Invite people to sign!');
  }catch(err){error('#createError',err.message)}finally{btn.disabled=false;btn.firstChild.textContent='Create my card '}
@@ -90,6 +198,7 @@ const loadCard=async(silent=false)=>{
   if(cardId!==c.id||views.card.classList.contains('hidden'))return;
   const msgCountBefore=currentCard?.messages.length;
   currentCard=c;
+  lifecycle.invite(c.id);
   $('#cardCover').className=`card-display theme-${c.theme}`;
   $('#cardOccasion').textContent=occasionTitles[c.occasion]||'A LITTLE SOMETHING FOR YOU';
   $('#cardTitle').textContent=c.title;
@@ -109,8 +218,12 @@ $('#messageForm').addEventListener('submit',async e=>{
  e.preventDefault();error('#messageError','');
  const btn=$('#postMessage');btn.disabled=true;btn.firstChild.textContent='Adding your message… ';
  const fields=Object.fromEntries(new FormData(e.currentTarget));
+ if(analyticsPreference.excluded)fields.excludeFromAnalytics=true;
+ messageAttempt=requestAttempt(fields,messageAttempt?.cardId===cardId?messageAttempt:null);
+ messageAttempt.cardId=cardId;
  try{
   await api(`/api/cards/${cardId}/messages`,{method:'POST',body:JSON.stringify(fields)});
+  messageAttempt=null;
   $('#messageBody').value='';
   // Keep name so participant can add another message if desired.
   await loadCard();
@@ -122,7 +235,7 @@ $('#deleteCard').onclick=async()=>{
  if(!ownerKey||!cardId)return;
  if(!window.confirm('Permanently delete this card and all its messages? This cannot be undone.'))return;
  try{
-  await api(`/api/cards/${cardId}`,{method:'DELETE',body:JSON.stringify({ownerKey})});
+  await api(`/api/cards/${cardId}`,{method:'DELETE',body:JSON.stringify({ownerKey,...(analyticsPreference.excluded?{excludeFromAnalytics:true}:{})})});
   try{localStorage.removeItem(`groupnote-owner-${cardId}`)}catch{}
   currentCard=null;cardId=null;ownerKey=null;form.reset();updatePreview();nav('home');toast('Card permanently deleted.');
  }catch(err){toast(err.message)}
@@ -136,13 +249,16 @@ $('#toggleClose').onclick=async()=>{
 const shareUrl=()=>new URL(`/?card=${encodeURIComponent(cardId)}`,location.origin).toString();
 $('#copyCardLink').onclick=async()=>{
  const url=shareUrl();
- try{await navigator.clipboard.writeText(url);toast('Invite link copied — send it to everyone!')}
- catch{window.prompt('Copy this invite link:',url)}
+ const finish=lifecycle.share(cardId,'copy_link');
+ try{await navigator.clipboard.writeText(url);finish('copied');toast('Invite link copied — send it to everyone!')}
+ catch{finish('manual_copy');window.prompt('Copy this invite link:',url)}
 };
 $('#nativeShare').onclick=async()=>{
  const url=shareUrl();
- if(navigator.share){try{await navigator.share({title:currentCard?.title||'GroupNote',text:'Add your message to this group card!',url})}catch{}}
- else {try{await navigator.clipboard.writeText(url);toast('Link copied!')}catch{window.prompt('Copy your link:',url)}}
+ const finish=lifecycle.share(cardId,'native_share');
+ if(navigator.share){try{await navigator.share({title:currentCard?.title||'GroupNote',text:'Add your message to this group card!',url});finish('completed')}catch(err){finish(err?.name==='AbortError'?'cancelled':'failed')}}
+ else {try{await navigator.clipboard.writeText(url);finish('fallback_copied');toast('Link copied!')}catch{finish('manual_copy');window.prompt('Copy your link:',url)}}
 };
 $('#cardPrint').onclick=()=>window.print();
 routes();
+if(analyticsPreference.notice)toast(analyticsPreference.notice);
