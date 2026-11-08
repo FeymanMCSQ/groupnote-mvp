@@ -1,0 +1,4 @@
+# Marketing responses explicitly override this through the Worker.
+# Also protects the static SPA fallback and alternative HTML asset URLs.
+/*
+  X-Robots-Tag: noindex, nofollow

@@ -98,12 +98,21 @@ const $=(selector)=>document.querySelector(selector);
 const $$=(selector)=>[...document.querySelectorAll(selector)];
 const views={home:$('#homeView'),create:$('#createView'),card:$('#cardView'),sample:$('#sampleView')};
 let currentCard=null,cardId=null,ownerKey=null,pollTimer=null,toastTimer=null;
-const occasionTitles={Farewell:'A VERY SPECIAL FAREWELL',Birthday:'HAPPIEST OF BIRTHDAYS','Thank you':'WITH SO MUCH GRATITUDE',Congratulations:'THREE CHEERS FOR YOU','Get well':'SENDING GOOD THOUGHTS','Just because':'A LITTLE SOMETHING FOR YOU'};
+const occasionTitles={Farewell:'A VERY SPECIAL FAREWELL',Birthday:'HAPPIEST OF BIRTHDAYS',Christmas:'A LITTLE CHRISTMAS CHEER','Thank you':'WITH SO MUCH GRATITUDE',Congratulations:'THREE CHEERS FOR YOU','Get well':'SENDING GOOD THOUGHTS','Just because':'A LITTLE SOMETHING FOR YOU'};
+const occasionPresets={
+ Farewell:{title:"Here's to your next adventure!",theme:'peach'},
+ Birthday:{title:'Happy birthday to you!',theme:'sky'},
+ Christmas:{title:'Warm Christmas wishes from all of us',theme:'sage'}
+};
+const landingOccasion=$('#homeView')?.dataset?.occasion;
+const initialRobots=$('meta[name="robots"]')?.content;
+let presetApplied=false;
 const turn = view => {
   for(const [key,el] of Object.entries(views))el.classList.toggle('hidden',key!==view);
   if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
   window.scrollTo({top:0,behavior:'instant'});
   acquisition.track(view);
+  $('meta[name="robots"]')?.setAttribute?.('content',view==='home'?initialRobots||'noindex, nofollow':'noindex, nofollow');
 };
 const toast=(text)=>{clearTimeout(toastTimer);const el=$('#toast');el.textContent=text;el.classList.remove('hidden');toastTimer=setTimeout(()=>el.classList.add('hidden'),3500)};
 const error=(id,text)=>{const el=$(id);el.textContent=text;el.classList.toggle('hidden',!text)};
@@ -120,19 +129,33 @@ const routes = () => {
    cardId=id;ownerKey=qs.get('key')||null;
    turn('card');loadCard();return;
  }
- if(location.hash==='#create'){turn('create');return;}
+ if(location.hash==='#create'){
+   const occasion=qs.get('occasion')||landingOccasion;
+   const preset=Object.hasOwn(occasionPresets,occasion)?occasionPresets[occasion]:null;
+   if(preset&&!presetApplied){
+     $('#occasion').value=occasion;$('#title').value=preset.title;
+     form.elements.theme.value=preset.theme;
+     presetApplied=true;updatePreview();
+   }
+   turn('create');return;
+ }
  if(location.hash==='#sample'){turn('sample');return;}
  turn('home');
 };
 const nav = (target,params='')=>{
+ if(target==='home'&&landingOccasion){location.assign('/');return;}
  const base=location.protocol==='file:'? location.pathname : '/';
- history.pushState({},'',target==='home'?base:target==='card'?`${base}?${params}`:`${base}#${target}`);
+ const formBase=landingOccasion?location.pathname:base;
+ const query=new URLSearchParams(location.search);
+ query.delete('card');query.delete('key');
+ const formQuery=query.size?'?'+query.toString():'';
+ history.pushState({},'',target==='home'?base:target==='card'?`${base}?${params}`:`${formBase}${formQuery}#${target}`);
  routes();
 };
 window.addEventListener('popstate',routes);
-$('#navCreate').onclick=$('#heroCreate').onclick=$('#bottomCreate').onclick=$('#sampleCreate').onclick=()=>nav('create');
+$('#navCreate').onclick=$('#heroCreate').onclick=$('#bottomCreate').onclick=$('#sampleCreate').onclick=e=>{e?.preventDefault();nav('create');};
 $('#backHome').onclick=$('#cardBack').onclick=$('#sampleBack').onclick=()=>nav('home');
-$('#seeSample').onclick=()=>nav('sample');
+$('#seeSample').onclick=()=>{if(landingOccasion){$('.occasion-example').scrollIntoView({behavior:'smooth'});return;}nav('sample');};
 $('#navHow').addEventListener('click',e=>{if(!views.home.classList.contains('hidden'))return;e.preventDefault();nav('home');setTimeout(()=>$('#how').scrollIntoView({behavior:'smooth'}),60)});
 $('#year').textContent=new Date().getFullYear();
 
@@ -145,13 +168,14 @@ function requestAttempt(fields,previous) {
  return attempt;
 }
 const updatePreview=()=>{
- const title=$('#title').value.trim() || "We'll miss you, Jordan!";
+ const title=$('#title').value.trim() || occasionPresets[$('#occasion').value]?.title || "We'll miss you, Jordan!";
  $('#previewTitle').textContent=title;
  const selected=form.elements.theme.value||'peach';
  $('#createPreview').className=`live-preview theme-${selected}`;
  $$('.theme-select').forEach(el=>el.classList.toggle('active',el.dataset.theme===selected));
  $('#preview-flower');
- $('#createPreview .preview-flower').textContent={peach:'✿',sage:'✺',sky:'✧'}[selected];
+ $('#createPreview .mini-eyebrow').textContent=occasionTitles[$('#occasion').value]||'A NOTE FOR SOMEONE SPECIAL';
+ $('#createPreview .preview-flower').textContent=$('#occasion').value==='Christmas'?'❄':{peach:'✿',sage:'✺',sky:'✧'}[selected];
 };
 form.addEventListener('input',updatePreview);
 form.addEventListener('change',updatePreview);
@@ -204,7 +228,7 @@ const loadCard=async(silent=false)=>{
   $('#cardTitle').textContent=c.title;
   $('#cardRecipient').textContent=c.recipient.toUpperCase();
   $('#cardIntro').textContent=c.intro||'A whole lot of love, just for you.';
-  $('#cardMain .card-mark').textContent={peach:'✿',sage:'✺',sky:'✧'}[c.theme]||'✿';
+  $('#cardMain .card-mark').textContent=c.occasion==='Christmas'?'❄':{peach:'✿',sage:'✺',sky:'✧'}[c.theme]||'✿';
   $('#messageCount').textContent=c.messages.length;
   if(msgCountBefore!==c.messages.length || !silent)drawMessages(c.messages);
   $('#signSection').classList.toggle('hidden',c.is_closed);

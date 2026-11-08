@@ -4,7 +4,7 @@ A real shareable group-card MVP. The organiser creates a card, contributors add 
 
 ## What works
 
-- Create a card with 6 occasions and 3 themes
+- Create a card with 7 occasions and 3 themes
 - Separate organiser link (private key) and contributor invitation link
 - Add notes and emoji from separate devices, stored in Cloudflare D1
 - Automatically refresh new notes every 15 seconds while viewing a card
@@ -157,6 +157,10 @@ Share the free tool with ten real card organisers: student societies, project gr
 
 ## File map
 
+- `src/marketing.js` — server-rendered occasion pages, public metadata, sitemap and robots
+- `public/_headers` — default noindex protection for static HTML fallbacks
+- `test/marketing.test.mjs` — marketing HTML, indexing directives and occasion compatibility tests
+
 - `public/index.html` — app screen structure
 - `public/styles.css` — responsive styling
 - `public/app.js` — app interactions and data loading
@@ -175,3 +179,53 @@ Share the free tool with ten real card organisers: student societies, project gr
 Local testing covered the card workflows, including organiser deletion. Browser checks confirmed guest-message submission, persistence after reloading, and a one-page PDF preview. Browser automation could not complete every check; the owner subsequently confirmed the application worked during manual local testing.
 
 Production deployment verification on 3 November 2026 (Australia/Sydney) passed for the homepage and all static assets, privacy page, `/api/health`, card creation, anonymous guest contributions, organiser permission enforcement, close/reopen, closed-card rejection, and persistence across independent HTTP reads. A read-only D1 query confirmed the verification card's messages are stored remotely. `RATE_SALT` was verified as a `secret_text` binding without reading its value. The clearly labelled production verification card was retained; no production data was deleted or reset. Cross-device browser testing and PDF export have not been repeated against production.
+
+## Occasion landing pages and SEO
+
+The public marketing routes are `/`, `/farewell-card`, `/birthday-card` and `/christmas-card`. The Worker renders distinct landing copy, examples, FAQs, titles, descriptions, canonical links and Open Graph metadata into the existing app shell before returning HTML. These pages work for crawlers without JavaScript. The homepage footer links all three occasions using ordinary anchors. Static CSS, JavaScript and images continue through the asset service. Marketing HTML uses `no-store` because indexing directives depend on query parameters.
+
+The occasion CTAs open the existing creator, with an editable suggested title, occasion and theme. Christmas uses the existing sage theme and a snowflake motif. There is one creator and one set of card/contribution/organiser APIs. No dependencies or database migrations are required. Landing pages reuse the existing landing/form analytics, session deduplication, campaign labels and browser opt-out, without adding analytics dimensions. `?src=uni_email` works on each occasion page.
+
+### Local checks and release
+
+```bash
+npm test
+npm run demo
+# Open http://localhost:8787/farewell-card (also birthday-card and christmas-card)
+# Optional production bundle validation, without publishing
+npx wrangler deploy --dry-run
+```
+
+After reviewing and approving publication, deploy the Worker and assets together with the existing script. A static-assets-only upload will not include the server-rendered pages.
+
+```bash
+npm run deploy
+```
+
+This update needs no production database command. Existing migrations remain unchanged. Verify the three public routes, `/sitemap.xml`, `/robots.txt` and a shared card's `X-Robots-Tag` response header after deployment. The local demo uses its own loopback origin in canonical links. Wrangler local development uses the configured public origin, matching production output.
+
+Local verification on 8 November 2026 passed all 45 automated tests, including the original 34 analytics/regression tests. A separate disposable demo database and isolated Chrome contexts passed no-JavaScript landing/FAQ checks, all three preset creations, editable titles, campaign-session deduplication, real clipboard sharing, independent guest contribution persistence, organiser permissions, close/reopen, closed-card rejection and persistent opt-out. Landing pages and forms had no horizontal overflow at 320, 375, 768 and 1365 pixels. Desktop/mobile screenshots were reviewed, with no uncaught JavaScript errors. All browser assertions completed and the report was saved, but the browser test process subsequently exited with Windows access-violation code `0xC0000005` during shutdown. Twelve read-only checks against Wrangler's local emulator verified actual asset routing, canonical output, private/fallback/API noindex headers, sitemap and robots. The production bundle also passed a Wrangler dry run. Browser tooling and screenshots remain in ignored `.dist/` folders. No production deployment or database change was performed.
+
+### Public origin and future domains
+
+`PUBLIC_SITE_ORIGIN` in `wrangler.toml` is the single production origin setting used for all canonical URLs, Open Graph URLs and sitemap locations. It currently points to `https://groupnote.sssafiullahhh.workers.dev`. Query parameters are excluded from these metadata URLs.
+
+After you own and attach a custom domain to this Worker, change `PUBLIC_SITE_ORIGIN` to its HTTPS origin. To enable permanent redirects, optionally add `MARKETING_REDIRECT_FROM` under `[vars]`, set to the old origin. Only public marketing requests on that explicitly configured old origin receive a 301 redirect. Campaign query parameters are preserved. Shared cards, organiser links and creator queries continue on their existing origin. Leave this optional setting absent until the new domain is attached and tested. No custom domain or redirect is configured by this change.
+
+### Indexing protection
+
+Only the four public marketing URLs are in the sitemap. Requests with `card`, `key` or `occasion` query parameters receive `noindex, nofollow` in both the HTML and the HTTP response header. Card API responses also carry this header. The SPA sets its robots meta tag to noindex while displaying creation, sample or card views. The static shell and `_headers` default to noindex, protecting alternative asset URLs and unknown SPA fallback paths. Marketing responses explicitly enable indexing only on the allowlisted public routes. Card contents and organiser keys are never interpolated into marketing HTML or SEO metadata.
+
+`robots.txt` allows crawling so crawlers can read the noindex directives. Blocking those URLs in robots.txt would prevent Google from seeing noindex. These directives guide cooperative search engines. Existing invitation-link access still applies to people who have a card link. [Google's noindex guidance](https://developers.google.com/search/docs/crawling-indexing/block-indexing)
+
+### Google Search Console setup after deployment
+
+The operator-provided Google HTML verification token is configured as `GOOGLE_SITE_VERIFICATION` in `wrangler.toml`. After publishing, return to the matching URL-prefix property in Search Console and click **Verify**, then submit the sitemap using the steps below. Keep this public token configured for ongoing ownership checks.
+
+1. In Google Search Console, add a **URL-prefix** property for `https://groupnote.sssafiullahhh.workers.dev/`, including HTTPS and the trailing slash. A URL-prefix property fits this hosted subdomain.
+2. Choose **HTML tag** verification. Copy the actual `content` value Google supplies into an optional `GOOGLE_SITE_VERIFICATION` variable under `[vars]` in `wrangler.toml`. The Worker will insert the escaped tag into the document head. This public verification value is not a credential. No token is provided or fabricated in this repository. Deploy that configuration after approval, confirm the tag in the homepage's initial HTML, then click **Verify** in Search Console. Keep the token published for ongoing verification. If you choose Google's HTML-file method instead, put the exact supplied file in `public/` and publish it unchanged. [Ownership verification](https://support.google.com/webmasters/answer/9008080?hl=en)
+3. Open **Sitemaps**, submit `https://groupnote.sssafiullahhh.workers.dev/sitemap.xml`, and check the fetch status. [Sitemaps report](https://support.google.com/webmasters/answer/7451001?hl=en)
+4. Use **URL Inspection** for the homepage and each occasion URL. Run **Test live URL** to check fetchability and indexing eligibility, then **Request indexing**. Use only the clean public marketing URLs.
+5. Revisit **URL Inspection** to check whether each URL is on Google and which canonical Google selected. Use the **Page indexing** report to investigate exclusions. A live test alone does not confirm indexing, and submission does not guarantee indexing or rankings. [URL Inspection](https://support.google.com/webmasters/answer/9012289/)
+
+Search Console ownership and Google indexing require the operator's account and published pages. They have not been performed by local tests. Open Graph titles, descriptions and URLs are provided, with no dedicated social-preview image. Existing Google Fonts usage is unchanged.

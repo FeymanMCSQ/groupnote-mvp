@@ -4,10 +4,14 @@ main = "src/worker.js"
 compatibility_date = "2026-10-01"
 workers_dev = true
 
+[vars]
+PUBLIC_SITE_ORIGIN = "https://groupnote.sssafiullahhh.workers.dev"
+GOOGLE_SITE_VERIFICATION = "ubMffSqn1UHSeyQRBSW_xXAZR5bES01YFo1kxrKc5Pc"
+
 [assets]
 directory = "./public"
 binding = "ASSETS"
-run_worker_first = ["/api/*"]
+run_worker_first = ["/api/*", "/", "/index.html", "/farewell-card", "/farewell-card/*", "/birthday-card", "/birthday-card/*", "/christmas-card", "/christmas-card/*", "/sitemap.xml", "/robots.txt"]
 not_found_handling = "single-page-application"
 
 [[d1_databases]]

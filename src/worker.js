@@ -1,10 +1,11 @@
 // GroupNote — Cloudflare Worker + D1.
 // No external email, AI, auth, or payment services required.
 import {mutate, creationStatements, contributionStatements, deletionStatements, clientEvent, validToken, eventKey} from './analytics.js';
+import {marketing} from './marketing.js';
 const allowedThemes = new Set(['peach','sage','sky']);
-const allowedOccasions = new Set(['Farewell','Birthday','Thank you','Congratulations','Get well','Just because']);
+const allowedOccasions = new Set(['Farewell','Birthday','Christmas','Thank you','Congratulations','Get well','Just because']);
 const allowedEmoji = new Set(['💛','✨','🎉','🌻','🫶','🥳','🌸','🤍']);
-const jsonHeaders = {'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'};
+const jsonHeaders = {'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','x-robots-tag':'noindex, nofollow'};
 const response = (data,status=200,extras={}) => new Response(JSON.stringify(data),{status,headers:{...jsonHeaders,...extras}});
 const fail = (text,status=400) => response({error:text},status);
 const clean = (s,limit)=> typeof s === 'string' ? s.trim().replace(/[\u0000-\u001f\u007f]/g,' ').slice(0,limit) : '';
@@ -173,7 +174,7 @@ async function handle(request,env,url,ctx){
 export default {
  async fetch(request,env,ctx){
    const url=new URL(request.url);
-   if(!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
+   if(!url.pathname.startsWith('/api/')) return marketing(request,env);
    if(url.pathname==='/api/acquisition')return handleAcquisition(request,env,url);
    if(!env.DB) return fail('Database not configured',503);
    try {return await handle(request,env,url,ctx);}

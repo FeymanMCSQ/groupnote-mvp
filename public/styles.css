@@ -8,3 +8,19 @@
 .home-view{overflow-x:clip}
 
 .owner-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.btn-danger-quiet{background:transparent;color:#a44542;border:1px solid #d6afac}.btn-danger-quiet:hover{background:#f5e3e1}
+
+/* Occasion pages reuse the existing palette, typography, card preview and steps. */
+.occasion-view .hero-shell{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:60px}
+.occasion-view .hero-copy h1{font-size:clamp(43px,4.5vw,66px);letter-spacing:-1.8px}
+.occasion-example{min-width:0;max-width:390px;width:100%;margin:auto;text-align:center}
+.occasion-example .live-preview{min-height:340px;max-width:100%;transform:rotate(2deg)}
+.occasion-example .message-bubble{position:relative;margin:-15px 0 0 30px;min-height:0;text-align:left;box-shadow:var(--shadow)}
+.occasion-example .message-bubble p{margin:8px 0 12px}
+.occasion-faq{max-width:820px;margin:65px auto;padding:0 24px}
+.occasion-faq h2{font-family:'DM Serif Display',Georgia,serif;font-size:36px;font-weight:400;line-height:1.15}
+.occasion-faq details{border-bottom:1px solid var(--line);padding:20px 0}
+.occasion-faq summary{font-weight:700;cursor:pointer;line-height:1.5}
+.occasion-faq details p{color:#5d665e;line-height:1.75;font-size:15px}
+.footer-links{flex-wrap:wrap}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid #52765d;outline-offset:5px}
+@media(max-width:690px){.occasion-view .hero-shell{grid-template-columns:minmax(0,1fr);gap:35px;padding-bottom:40px}.occasion-view .hero-copy h1{font-size:46px}.occasion-example{max-width:340px}.occasion-example .live-preview{min-height:300px}.occasion-faq{margin:45px auto}.occasion-faq h2{font-size:30px}.footer-links{gap:16px}}

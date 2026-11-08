@@ -108,21 +108,21 @@ test('a stalled acquisition write does not delay card creation or guest contribu
   await Promise.all(tasks);
 });
 
-function browser({query = '', storage = new Map(), preferences = new Map(), blocked = false, preferencesBlocked = false, fetchImpl, brokenTracker = false, missingCard = false} = {}) {
+function browser({query = '', landing = '', hash = '', storage = new Map(), preferences = new Map(), blocked = false, preferencesBlocked = false, fetchImpl, brokenTracker = false, missingCard = false} = {}) {
   const elements = new Map(), requests = [], eventRequests = [], apiRequests = [], apiBodies = [], messages = [];
   const id = 'a'.repeat(24);
   function element(selector) {
     if (!elements.has(selector)) {
       const classes = new Set(['#createView', '#cardView', '#sampleView'].includes(selector) ? ['hidden'] : []);
       elements.set(selector, {
-        handlers: {}, fields: [], value: '', firstChild: {textContent: ''}, elements: {theme: {value: 'peach'}},
+        handlers: {}, fields: [], value: '', dataset: selector==='#homeView'?{occasion:landing}:{}, firstChild: {textContent: ''}, elements: {theme: {value: 'peach'}},
         classList: {toggle(name, enabled) { if (enabled) classes.add(name); else classes.delete(name); }, contains: name => classes.has(name), add: name => classes.add(name), remove: name => classes.delete(name)},
         addEventListener(name, handler) { this.handlers[name] = handler; }, reset() {}, replaceChildren() {}, append() {}
       });
     }
     return elements.get(selector);
   }
-  const location = {search: query, hash: '', pathname: '/', protocol: 'https:', origin: 'https://groupnote.test'};
+  const location = {search: query, hash, pathname: landing?'/'+landing.toLowerCase()+'-card':'/', protocol: 'https:', origin: 'https://groupnote.test'};
   const context = vm.createContext({
     URLSearchParams, URL, Date, Promise, crypto, Uint8Array,
     Intl: brokenTracker ? {DateTimeFormat: function() { throw new Error('Analytics initialization failed'); }} : Intl,
@@ -156,6 +156,26 @@ function browser({query = '', storage = new Map(), preferences = new Map(), bloc
   });
   vm.runInContext(appCode, context);
   return {context, requests, eventRequests, tracker: vm.runInContext('acquisition', context), element, location, id, messages, apiRequests, apiBodies};
+}
+
+for(const [occasion,theme] of [['Farewell','peach'],['Birthday','sky'],['Christmas','sage']]){
+ test(`${occasion} CTA selects the existing creator preset and retains editable fields and campaign attribution`,()=>{
+  const client=browser({landing:occasion,query:'?src=uni_email'});
+  client.element('#heroCreate').onclick({preventDefault(){}});
+  assert.equal(client.location.hash,'#create');
+  assert.equal(client.element('#occasion').value,occasion);
+  assert.equal(client.element('#createForm').elements.theme.value,theme);
+  assert.ok(client.element('#title').value.length>10);
+  assert.equal(client.element('#previewTitle').textContent,client.element('#title').value);
+  client.element('#title').value='My own cover title';
+  vm.runInContext('routes()',client.context);
+  assert.equal(client.element('#title').value,'My own cover title');
+  assert.equal(client.tracker.source,'uni_email');
+  assert.deepEqual(client.requests.map(request=>JSON.parse(request.body).event),['landing','create_open']);
+  const direct=browser({query:'?occasion='+occasion,hash:'#create'});
+  assert.equal(direct.element('#occasion').value,occasion);
+  assert.deepEqual(direct.requests.map(request=>JSON.parse(request.body).event),['create_open']);
+ });
 }
 
 test('browser opt-out persists across new tab sessions, without affecting other browsers, and can be reversed', () => {
