@@ -4,7 +4,7 @@ A real shareable group-card MVP. The organiser creates a card, contributors add 
 
 ## What works
 
-- Create a card with 7 occasions and 3 themes
+- Create a card with 9 occasions, 12 occasion-specific templates and 3 classic neutral looks
 - Separate organiser link (private key) and contributor invitation link
 - Add notes and emoji from separate devices, stored in Cloudflare D1
 - Automatically refresh new notes every 15 seconds while viewing a card
@@ -158,6 +158,10 @@ Share the free tool with ten real card organisers: student societies, project gr
 ## File map
 
 - `src/marketing.js` — server-rendered occasion pages, public metadata, sitemap and robots
+- `public/templates.js` — shared template IDs, occasions, palettes, greetings and preview markup
+- `public/templates.css` — card layouts, accessible miniature picker and print styling
+- `public/card-art.svg` — reusable, local vector decorations for the twelve designs
+- `test/templates.test.mjs` — catalogue, artwork, contrast and template-persistence tests
 - `public/_headers` — default noindex protection for static HTML fallbacks
 - `test/marketing.test.mjs` — marketing HTML, indexing directives and occasion compatibility tests
 
@@ -182,9 +186,9 @@ Production deployment verification on 3 November 2026 (Australia/Sydney) passed 
 
 ## Occasion landing pages and SEO
 
-The public marketing routes are `/`, `/farewell-card`, `/birthday-card` and `/christmas-card`. The Worker renders distinct landing copy, examples, FAQs, titles, descriptions, canonical links and Open Graph metadata into the existing app shell before returning HTML. These pages work for crawlers without JavaScript. The homepage footer links all three occasions using ordinary anchors. Static CSS, JavaScript and images continue through the asset service. Marketing HTML uses `no-store` because indexing directives depend on query parameters.
+The public marketing routes are `/`, `/farewell-card`, `/birthday-card`, `/thank-you-card`, `/diwali-card`, `/christmas-card` and `/new-year-card`. The Worker renders distinct landing copy, examples, FAQs, titles, descriptions, canonical links and Open Graph metadata into the existing app shell before returning HTML. These pages work for crawlers without JavaScript. The homepage footer links all six occasion collections using ordinary anchors. Static CSS, JavaScript and images continue through the asset service. Marketing HTML uses `no-store` because indexing directives depend on query parameters.
 
-The occasion CTAs open the existing creator, with an editable suggested title, occasion and theme. Christmas uses the existing sage theme and a snowflake motif. There is one creator and one set of card/contribution/organiser APIs. No dependencies or database migrations are required. Landing pages reuse the existing landing/form analytics, session deduplication, campaign labels and browser opt-out, without adding analytics dimensions. `?src=uni_email` works on each occasion page.
+The occasion CTAs open the existing creator, with an editable suggested title, occasion and theme. Each main occasion offers two designs from the shared template catalogue, with three neutral alternatives. There is one creator and one set of card/contribution/organiser APIs. No dependencies or database migrations are required. Landing pages reuse the existing landing/form analytics, session deduplication, campaign labels and browser opt-out, without adding analytics dimensions. `?src=uni_email` works on each occasion page.
 
 ### Local checks and release
 
@@ -202,7 +206,7 @@ After reviewing and approving publication, deploy the Worker and assets together
 npm run deploy
 ```
 
-This update needs no production database command. Existing migrations remain unchanged. Verify the three public routes, `/sitemap.xml`, `/robots.txt` and a shared card's `X-Robots-Tag` response header after deployment. The local demo uses its own loopback origin in canonical links. Wrangler local development uses the configured public origin, matching production output.
+This update needs no production database command. Existing migrations remain unchanged. Verify all six occasion routes, `/sitemap.xml`, `/robots.txt` and a shared card's `X-Robots-Tag` response header after deployment. The local demo uses its own loopback origin in canonical links. Wrangler local development uses the configured public origin, matching production output.
 
 Local verification on 8 November 2026 passed all 45 automated tests, including the original 34 analytics/regression tests. A separate disposable demo database and isolated Chrome contexts passed no-JavaScript landing/FAQ checks, all three preset creations, editable titles, campaign-session deduplication, real clipboard sharing, independent guest contribution persistence, organiser permissions, close/reopen, closed-card rejection and persistent opt-out. Landing pages and forms had no horizontal overflow at 320, 375, 768 and 1365 pixels. Desktop/mobile screenshots were reviewed, with no uncaught JavaScript errors. All browser assertions completed and the report was saved, but the browser test process subsequently exited with Windows access-violation code `0xC0000005` during shutdown. Twelve read-only checks against Wrangler's local emulator verified actual asset routing, canonical output, private/fallback/API noindex headers, sitemap and robots. The production bundle also passed a Wrangler dry run. Browser tooling and screenshots remain in ignored `.dist/` folders. No production deployment or database change was performed.
 
@@ -214,7 +218,7 @@ After you own and attach a custom domain to this Worker, change `PUBLIC_SITE_ORI
 
 ### Indexing protection
 
-Only the four public marketing URLs are in the sitemap. Requests with `card`, `key` or `occasion` query parameters receive `noindex, nofollow` in both the HTML and the HTTP response header. Card API responses also carry this header. The SPA sets its robots meta tag to noindex while displaying creation, sample or card views. The static shell and `_headers` default to noindex, protecting alternative asset URLs and unknown SPA fallback paths. Marketing responses explicitly enable indexing only on the allowlisted public routes. Card contents and organiser keys are never interpolated into marketing HTML or SEO metadata.
+Only the seven public marketing URLs are in the sitemap. Requests with `card`, `key` or `occasion` query parameters receive `noindex, nofollow` in both the HTML and the HTTP response header. Card API responses also carry this header. The SPA sets its robots meta tag to noindex while displaying creation, sample or card views. The static shell and `_headers` default to noindex, protecting alternative asset URLs and unknown SPA fallback paths. Marketing responses explicitly enable indexing only on the allowlisted public routes. Card contents and organiser keys are never interpolated into marketing HTML or SEO metadata.
 
 `robots.txt` allows crawling so crawlers can read the noindex directives. Blocking those URLs in robots.txt would prevent Google from seeing noindex. These directives guide cooperative search engines. Existing invitation-link access still applies to people who have a card link. [Google's noindex guidance](https://developers.google.com/search/docs/crawling-indexing/block-indexing)
 
@@ -229,3 +233,49 @@ The operator-provided Google HTML verification token is configured as `GOOGLE_SI
 5. Revisit **URL Inspection** to check whether each URL is on Google and which canonical Google selected. Use the **Page indexing** report to investigate exclusions. A live test alone does not confirm indexing, and submission does not guarantee indexing or rankings. [URL Inspection](https://support.google.com/webmasters/answer/9012289/)
 
 Search Console ownership and Google indexing require the operator's account and published pages. They have not been performed by local tests. Open Graph titles, descriptions and URLs are provided, with no dedicated social-preview image. Existing Google Fonts usage is unchanged.
+
+## Occasion collections and card designs
+
+The creator offers two illustrated designs for each main collection, plus the original three neutral looks for every occasion. The homepage hero shows six linked card miniatures, beside the introduction on desktop and beneath it on mobile.
+
+| Collection | Templates |
+| --- | --- |
+| Farewell | New Beginnings, Best Wishes |
+| Birthday | Birthday Confetti, Birthday Balloons |
+| Thank you | Floral Gratitude, Warm Appreciation |
+| Diwali | Festival of Lights, Golden Celebration |
+| Christmas | Evergreen Christmas, Winter Wishes |
+| New Year | Midnight Celebration, Golden Fireworks |
+
+Congratulations, Get well and Just because remain in the occasion selector and use the classic looks. Diwali artwork uses diyas and rangoli-inspired ornamentation. Evergreen Christmas has pine branches and berries. Winter Wishes offers a general seasonal greeting. Both New Year designs have year-independent artwork.
+
+### Catalogue and compatibility
+
+`public/templates.js` is the shared catalogue imported by the browser, Worker validation and marketing renderer. Every entry has a stable ID, name, occasion, palette, suggested greeting and decorative/layout styling. Local SVG symbols in `public/card-art.svg` supply the same artwork to picker thumbnails, creation previews, finished cards and PDF exports. `public/templates.css` controls the layouts at those sizes. The frontend uses native JavaScript modules served by the existing local or Cloudflare server.
+
+Occasion and visual appearance remain separate fields. The existing `cards.theme` TEXT column stores the selected template ID. The backend validates IDs against the shared catalogue and retains the existing fallback for unknown values. **No migration or new table is required.** The original `peach`, `sage` and `sky` IDs retain their previous card styling and stay selectable. Existing card records are never rewritten. Keep published template IDs stable to preserve future compatibility.
+
+Selecting an occasion displays its two illustrated choices and all three classic options. Selecting a design updates the live preview and suggested greeting. Once the title receives manual input, changing occasions or templates preserves that title, including an intentionally cleared title. Recipient, organiser name and personal note are preserved during selection changes. The picker uses labelled native radio inputs with keyboard navigation, a visible focus outline and an explicit selected indicator.
+
+The six occasion landing pages reuse the existing server-rendered marketing pages and creator. The sitemap now contains seven public URLs including the homepage. Private cards, organiser links and API responses retain their indexing protections. Existing acquisition, lifetime events, browser exclusion, campaign attribution and SELECT-only statistics continue through their existing code and tables.
+
+### Review and deployment
+
+Run local checks and review the designs before approving a production release.
+
+```bash
+npm test
+npm run demo
+# Open http://localhost:8787/diwali-card or any other occasion page
+npx wrangler deploy --dry-run
+```
+
+After explicit release approval, publish the Worker and all assets together using the existing script.
+
+```bash
+npm run deploy
+```
+
+There is no production migration command for this expansion. Local browser tests use disposable databases under ignored `.dist/` folders. Screenshots and PDF exports are test evidence in that folder. The classic font stack and system handwriting-style fallback vary by platform. Browser testing uses isolated Chrome with emulated mobile viewports. Actual physical-printer output remains a manual check.
+
+Local verification on 9 November 2026 passed all 57 automated tests and the complete isolated Chrome suite with a clean exit. Browser checks covered all twelve designs, six server-rendered landing pages without JavaScript, keyboard template selection, live previews, manual-title preservation, campaign deduplication, real clipboard sharing, independent guest persistence, organiser permissions, close/reopen and deletion. All six landing pages and twelve previews passed no-horizontal-overflow checks at 320, 375, 768 and 1365 pixels, including checks that thumbnail text stays inside the cards. All fifteen designs, including the three classic themes, exported readable one-page synthetic-fixture PDFs with organiser/sharing controls excluded. Visual PDF review led to portrait proportions for illustrated print covers, preserving the artwork. Local Wrangler checks passed for all six occasion routes, JavaScript/CSS/SVG asset types, the seven-URL sitemap, robots and private noindex headers. The final Worker dry run passed. Production release awaits explicit approval.

@@ -2,8 +2,9 @@
 // No external email, AI, auth, or payment services required.
 import {mutate, creationStatements, contributionStatements, deletionStatements, clientEvent, validToken, eventKey} from './analytics.js';
 import {marketing} from './marketing.js';
-const allowedThemes = new Set(['peach','sage','sky']);
-const allowedOccasions = new Set(['Farewell','Birthday','Christmas','Thank you','Congratulations','Get well','Just because']);
+import {templates,occasions} from '../public/templates.js';
+const allowedThemes = new Set(templates.map(template=>template.id));
+const allowedOccasions = new Set(Object.keys(occasions));
 const allowedEmoji = new Set(['💛','✨','🎉','🌻','🫶','🥳','🌸','🤍']);
 const jsonHeaders = {'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','x-robots-tag':'noindex, nofollow'};
 const response = (data,status=200,extras={}) => new Response(JSON.stringify(data),{status,headers:{...jsonHeaders,...extras}});

@@ -1,3 +1,5 @@
+import {occasions,templates,getTemplate,defaultTemplate,suggestedTitle,templateClass,templateStyle,overline,decoration,miniature} from './templates.js';
+
 // A browser-only opt-out contains no identifier and is never stored in D1.
 const analyticsPreference = (() => {
   let excluded = false, notice = '';
@@ -98,12 +100,6 @@ const $=(selector)=>document.querySelector(selector);
 const $$=(selector)=>[...document.querySelectorAll(selector)];
 const views={home:$('#homeView'),create:$('#createView'),card:$('#cardView'),sample:$('#sampleView')};
 let currentCard=null,cardId=null,ownerKey=null,pollTimer=null,toastTimer=null;
-const occasionTitles={Farewell:'A VERY SPECIAL FAREWELL',Birthday:'HAPPIEST OF BIRTHDAYS',Christmas:'A LITTLE CHRISTMAS CHEER','Thank you':'WITH SO MUCH GRATITUDE',Congratulations:'THREE CHEERS FOR YOU','Get well':'SENDING GOOD THOUGHTS','Just because':'A LITTLE SOMETHING FOR YOU'};
-const occasionPresets={
- Farewell:{title:"Here's to your next adventure!",theme:'peach'},
- Birthday:{title:'Happy birthday to you!',theme:'sky'},
- Christmas:{title:'Warm Christmas wishes from all of us',theme:'sage'}
-};
 const landingOccasion=$('#homeView')?.dataset?.occasion;
 const initialRobots=$('meta[name="robots"]')?.content;
 let presetApplied=false;
@@ -131,11 +127,9 @@ const routes = () => {
  }
  if(location.hash==='#create'){
    const occasion=qs.get('occasion')||landingOccasion;
-   const preset=Object.hasOwn(occasionPresets,occasion)?occasionPresets[occasion]:null;
-   if(preset&&!presetApplied){
-     $('#occasion').value=occasion;$('#title').value=preset.title;
-     form.elements.theme.value=preset.theme;
-     presetApplied=true;updatePreview();
+   if(Object.hasOwn(occasions,occasion)&&!presetApplied){
+     $('#occasion').value=occasion;
+     chooseOccasion();presetApplied=true;
    }
    turn('create');return;
  }
@@ -161,6 +155,7 @@ $('#year').textContent=new Date().getFullYear();
 
 const form=$('#createForm');
 let createAttempt=null, messageAttempt=null;
+let titleEdited=!!$('#title').value;
 function requestAttempt(fields,previous) {
  const values=JSON.stringify(fields);
  const attempt=previous?.values===values?previous:{values,requestId:lifecycle.token()};
@@ -168,17 +163,34 @@ function requestAttempt(fields,previous) {
  return attempt;
 }
 const updatePreview=()=>{
- const title=$('#title').value.trim() || occasionPresets[$('#occasion').value]?.title || "We'll miss you, Jordan!";
+ const selected=getTemplate(form.elements.theme.value);
+ const title=$('#title').value.trim() || suggestedTitle(selected,$('#occasion').value);
  $('#previewTitle').textContent=title;
- const selected=form.elements.theme.value||'peach';
- $('#createPreview').className=`live-preview theme-${selected}`;
- $$('.theme-select').forEach(el=>el.classList.toggle('active',el.dataset.theme===selected));
- $('#preview-flower');
- $('#createPreview .mini-eyebrow').textContent=occasionTitles[$('#occasion').value]||'A NOTE FOR SOMEONE SPECIAL';
- $('#createPreview .preview-flower').textContent=$('#occasion').value==='Christmas'?'❄':{peach:'✿',sage:'✺',sky:'✧'}[selected];
+ $('#createPreview').className=templateClass(selected,'live-preview');
+ $('#createPreview').setAttribute('style',templateStyle(selected));
+ $('#createPreview').dataset.template=selected.id;
+ $$('.template-choice').forEach(el=>el.classList.toggle('active',el.dataset.theme===selected.id));
+ $('#createPreview .mini-eyebrow').textContent=overline(selected,$('#occasion').value);
+ $('#createPreview .preview-flower').innerHTML=decoration(selected,$('#occasion').value);
 };
-form.addEventListener('input',updatePreview);
-form.addEventListener('change',updatePreview);
+function chooseOccasion(){
+ const occasion=$('#occasion').value;
+ const matching=templates.filter(template=>template.occasion===occasion);
+ const classics=templates.filter(template=>template.occasion===null);
+ const choice=template=>`<label class="template-choice" data-theme="${template.id}"><input type="radio" name="theme" value="${template.id}"/>${miniature(template,{occasion})}<span class="template-choice-name">${template.name}</span><span class="template-selected" aria-hidden="true">✓ Selected</span></label>`;
+ $('#occasionTemplates').innerHTML=matching.map(choice).join('');
+ $('#classicTemplates').innerHTML=classics.map(choice).join('');
+ $('#occasionTemplateLabel').textContent=matching.length?'Made for '+occasion.toLowerCase():'Choose a classic look';
+ form.elements.theme.value=defaultTemplate(occasion).id;
+ if(!titleEdited)$('#title').value=suggestedTitle(defaultTemplate(occasion),occasion);
+ updatePreview();
+}
+form.addEventListener('input',e=>{if(e.target?.id==='title')titleEdited=true;updatePreview();});
+form.addEventListener('change',e=>{
+ if(e.target?.id==='occasion'){chooseOccasion();return;}
+ if(e.target?.name==='theme'&&!titleEdited)$('#title').value=suggestedTitle(getTemplate(e.target.value),$('#occasion').value);
+ updatePreview();
+});
 form.addEventListener('submit',async e=>{
  e.preventDefault();error('#createError','');
  const btn=$('#createSubmit');btn.disabled=true;btn.firstChild.textContent='Creating your card… ';
@@ -223,12 +235,15 @@ const loadCard=async(silent=false)=>{
   const msgCountBefore=currentCard?.messages.length;
   currentCard=c;
   lifecycle.invite(c.id);
-  $('#cardCover').className=`card-display theme-${c.theme}`;
-  $('#cardOccasion').textContent=occasionTitles[c.occasion]||'A LITTLE SOMETHING FOR YOU';
+  const design=getTemplate(c.theme);
+  $('#cardCover').className=templateClass(design,'card-display');
+  $('#cardCover').setAttribute('style',templateStyle(design));
+  $('#cardCover').dataset.template=design.id;
+  $('#cardOccasion').textContent=overline(design,c.occasion);
   $('#cardTitle').textContent=c.title;
   $('#cardRecipient').textContent=c.recipient.toUpperCase();
   $('#cardIntro').textContent=c.intro||'A whole lot of love, just for you.';
-  $('#cardMain .card-mark').textContent=c.occasion==='Christmas'?'❄':{peach:'✿',sage:'✺',sky:'✧'}[c.theme]||'✿';
+  $('#cardMain .card-mark').innerHTML=decoration(design,c.occasion);
   $('#messageCount').textContent=c.messages.length;
   if(msgCountBefore!==c.messages.length || !silent)drawMessages(c.messages);
   $('#signSection').classList.toggle('hidden',c.is_closed);
@@ -261,7 +276,7 @@ $('#deleteCard').onclick=async()=>{
  try{
   await api(`/api/cards/${cardId}`,{method:'DELETE',body:JSON.stringify({ownerKey,...(analyticsPreference.excluded?{excludeFromAnalytics:true}:{})})});
   try{localStorage.removeItem(`groupnote-owner-${cardId}`)}catch{}
-  currentCard=null;cardId=null;ownerKey=null;form.reset();updatePreview();nav('home');toast('Card permanently deleted.');
+  currentCard=null;cardId=null;ownerKey=null;form.reset();titleEdited=false;chooseOccasion();nav('home');toast('Card permanently deleted.');
  }catch(err){toast(err.message)}
 };
 $('#toggleClose').onclick=async()=>{
@@ -284,5 +299,6 @@ $('#nativeShare').onclick=async()=>{
  else {try{await navigator.clipboard.writeText(url);finish('fallback_copied');toast('Link copied!')}catch{finish('manual_copy');window.prompt('Copy your link:',url)}}
 };
 $('#cardPrint').onclick=()=>window.print();
+chooseOccasion();
 routes();
 if(analyticsPreference.notice)toast(analyticsPreference.notice);

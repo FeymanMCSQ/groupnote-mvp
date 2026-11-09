@@ -6,10 +6,13 @@ import vm from 'node:vm';
 import {fileURLToPath} from 'node:url';
 import worker from '../src/worker.js';
 import {sqliteBinding} from './d1.mjs';
+import * as designs from '../public/templates.js';
 
 const initial = readFileSync(new URL('../migrations/0001_init.sql', import.meta.url), 'utf8');
 const migration = readFileSync(new URL('../migrations/0002_acquisition_counts.sql', import.meta.url), 'utf8');
-const appCode = readFileSync(new URL('../public/app.js', import.meta.url), 'utf8');
+// The synchronous browser harness supplies the shared module exports in its VM context.
+// Real module loading is covered by the local browser checks.
+const appCode = readFileSync(new URL('../public/app.js', import.meta.url), 'utf8').replace(/^import \{[^\n]+\} from '\.\/templates\.js';\r?\n/, '');
 
 const lifecycleMigration = readFileSync(new URL('../migrations/0003_card_lifecycle.sql', import.meta.url), 'utf8');
 
@@ -115,15 +118,17 @@ function browser({query = '', landing = '', hash = '', storage = new Map(), pref
     if (!elements.has(selector)) {
       const classes = new Set(['#createView', '#cardView', '#sampleView'].includes(selector) ? ['hidden'] : []);
       elements.set(selector, {
-        handlers: {}, fields: [], value: '', dataset: selector==='#homeView'?{occasion:landing}:{}, firstChild: {textContent: ''}, elements: {theme: {value: 'peach'}},
+        handlers: {}, fields: [], value: selector==='#occasion'?'Farewell':'', dataset: selector==='#homeView'?{occasion:landing}:{}, firstChild: {textContent: ''}, elements: {theme: {value: 'peach'}},
+        setAttribute(name,value){this[name]=value;},
         classList: {toggle(name, enabled) { if (enabled) classes.add(name); else classes.delete(name); }, contains: name => classes.has(name), add: name => classes.add(name), remove: name => classes.delete(name)},
         addEventListener(name, handler) { this.handlers[name] = handler; }, reset() {}, replaceChildren() {}, append() {}
       });
     }
     return elements.get(selector);
   }
-  const location = {search: query, hash, pathname: landing?'/'+landing.toLowerCase()+'-card':'/', protocol: 'https:', origin: 'https://groupnote.test'};
+  const location = {search: query, hash, pathname: landing?'/'+designs.occasions[landing].slug:'/', protocol: 'https:', origin: 'https://groupnote.test'};
   const context = vm.createContext({
+    ...designs,
     URLSearchParams, URL, Date, Promise, crypto, Uint8Array,
     Intl: brokenTracker ? {DateTimeFormat: function() { throw new Error('Analytics initialization failed'); }} : Intl,
     location, history: {pushState(state, unused, target) { const url = new URL(target, location.origin); Object.assign(location, {search: url.search, hash: url.hash}); }},
@@ -158,13 +163,39 @@ function browser({query = '', landing = '', hash = '', storage = new Map(), pref
   return {context, requests, eventRequests, tracker: vm.runInContext('acquisition', context), element, location, id, messages, apiRequests, apiBodies};
 }
 
-for(const [occasion,theme] of [['Farewell','peach'],['Birthday','sky'],['Christmas','sage']]){
+test('template changes suggest greetings while occasion changes preserve all manually entered content',()=>{
+ const client=browser({hash:'#create'});
+ const form=client.element('#createForm');
+ form.elements.theme.value='farewell-letterpress';
+ form.handlers.change({target:{name:'theme',value:'farewell-letterpress'}});
+ assert.equal(client.element('#title').value,designs.getTemplate('farewell-letterpress').title);
+ assert.match(client.element('#createPreview').className,/theme-farewell-letterpress/);
+ assert.match(client.element('#createPreview .preview-flower').innerHTML,/#branches/);
+ client.element('#occasion').value='Birthday';form.handlers.change({target:{id:'occasion'}});
+ form.elements.theme.value='peach';form.handlers.change({target:{name:'theme',value:'peach'}});
+ assert.equal(client.element('#title').value,designs.defaultTemplate('Birthday').title);
+ for(const [id,value] of [['title','My own words'],['recipient','A recipient'],['creator','An organiser'],['intro','My own personal note']])client.element('#'+id).value=value;
+ form.handlers.input({target:{id:'title'}});
+ client.element('#occasion').value='Diwali';
+ form.handlers.change({target:{id:'occasion'}});
+ assert.equal(form.elements.theme.value,'diwali-lights');
+ for(const [id,value] of [['title','My own words'],['recipient','A recipient'],['creator','An organiser'],['intro','My own personal note']])assert.equal(client.element('#'+id).value,value);
+ form.elements.theme.value='diwali-rangoli';
+ form.handlers.change({target:{name:'theme',value:'diwali-rangoli'}});
+ assert.equal(client.element('#title').value,'My own words');
+ assert.equal(client.element('#previewTitle').textContent,'My own words');
+ client.element('#title').value='';form.handlers.input({target:{id:'title'}});
+ client.element('#occasion').value='Birthday';form.handlers.change({target:{id:'occasion'}});
+ assert.equal(client.element('#title').value,''); // Even an intentionally cleared title remains the user's choice.
+});
+
+for(const [occasion,entry] of Object.entries(designs.occasions).filter(([,entry])=>entry.slug)){
  test(`${occasion} CTA selects the existing creator preset and retains editable fields and campaign attribution`,()=>{
   const client=browser({landing:occasion,query:'?src=uni_email'});
   client.element('#heroCreate').onclick({preventDefault(){}});
   assert.equal(client.location.hash,'#create');
   assert.equal(client.element('#occasion').value,occasion);
-  assert.equal(client.element('#createForm').elements.theme.value,theme);
+  assert.equal(client.element('#createForm').elements.theme.value,entry.template);
   assert.ok(client.element('#title').value.length>10);
   assert.equal(client.element('#previewTitle').textContent,client.element('#title').value);
   client.element('#title').value='My own cover title';

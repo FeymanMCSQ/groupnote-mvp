@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+ <defs>
+  <g id="leaf"><path d="M0 0Q-34-35-10-66Q16-39 0 0Z" fill="var(--design-accent)"/><path d="M0 0Q34-35 10-66Q-16-39 0 0Z" fill="var(--design-accent)" opacity=".6"/></g>
+  <g id="sprig" fill="none" stroke="var(--design-accent)" stroke-width="2"><path d="M0 0Q35-80 10-160"/><path d="M13-35Q-31-40-22-74Q7-66 13-35ZM18-75Q59-77 57-111Q29-105 18-75ZM17-109Q-18-109-15-141Q9-135 17-109Z" fill="var(--design-accent)" opacity=".6"/></g>
+  <g id="flower"><g fill="var(--design-accent)"><ellipse cy="-13" rx="9" ry="15"/><ellipse cy="-13" rx="9" ry="15" transform="rotate(72)"/><ellipse cy="-13" rx="9" ry="15" transform="rotate(144)"/><ellipse cy="-13" rx="9" ry="15" transform="rotate(216)"/><ellipse cy="-13" rx="9" ry="15" transform="rotate(288)"/></g><circle r="8" fill="var(--design-background)"/></g>
+  <g id="star" fill="var(--design-accent)"><path d="M0-14 3-3 14 0 3 3 0 14-3 3-14 0-3-3Z"/></g>
+  <g id="burst" fill="none" stroke="var(--design-accent)" stroke-width="1.8"><path d="M0-40V-10M0 10V40M-40 0H-10M10 0H40M-28-28-7-7M7 7 28 28M-28 28-7 7M7-7 28-28"/><circle r="5"/></g>
+  <g id="diya"><path d="M-36 0Q0 46 36 0Z" fill="var(--design-secondary)"/><ellipse rx="36" ry="7" fill="none" stroke="var(--design-accent)" stroke-width="2"/><path d="M0-4Q-22-23 0-48Q22-23 0-4Z" fill="var(--design-accent)"/><path d="M0-8Q-8-20 0-30Q8-20 0-8Z" fill="var(--design-background)"/><path d="M-22 10Q0 27 22 10" fill="none" stroke="var(--design-accent)" stroke-width="2"/></g>
+  <g id="pine-branch" fill="none" stroke="var(--design-accent)" stroke-width="2"><path d="M0 0 110 110M15 15 18 50M28 28 53 24M36 36 37 76M51 51 83 44M64 64 66 105M81 81 113 73M0 0 32 7M8 14 4 35M46 28 62 30M31 56 45 61"/></g>
+  <g id="snow" stroke="var(--design-accent)" fill="none" stroke-width="1.5"><path d="M0-18V18M-16-9 16 9M-16 9 16-9M-5-13 0-8 5-13M-5 13 0 8 5 13M-14-2-7-4-9-11M14 2 7 4 9 11M-9 11-7 4-14 2M9-11 7-4 14-2"/></g>
+ </defs>
+ <symbol id="botanical" viewBox="0 0 360 480">
+  <path d="M22 435Q34 290 13 190M338 45Q326 190 348 270" stroke="var(--design-accent)" fill="none" stroke-width="2"/>
+  <use href="#sprig" transform="translate(38 444) rotate(-16)"/><use href="#sprig" transform="translate(322 36) rotate(164)"/>
+  <use href="#leaf" transform="translate(70 445) rotate(-65) scale(.6)"/><use href="#leaf" transform="translate(290 35) rotate(115) scale(.6)"/>
+  <path d="M94 54H266M94 426H266" stroke="var(--design-secondary)"/>
+ </symbol>
+ <symbol id="branches" viewBox="0 0 360 480">
+  <rect x="22" y="22" width="316" height="436" rx="148" fill="none" stroke="var(--design-secondary)"/>
+  <rect x="30" y="30" width="300" height="420" rx="140" fill="none" stroke="var(--design-secondary)" opacity=".5"/>
+  <use href="#sprig" transform="translate(144 414) rotate(-65) scale(.6)"/><use href="#sprig" transform="translate(216 414) rotate(65) scale(-.6 .6)"/>
+  <path d="M154 85H206M174 79 180 85 186 79M174 91 180 85 186 91" fill="none" stroke="var(--design-secondary)"/>
+ </symbol>
+ <symbol id="confetti" viewBox="0 0 360 480">
+  <g fill="var(--design-accent)"><path d="m26 30 8-5 9 17-8 5ZM104 38l7-3 7 16-7 3ZM280 24l9 3-7 20-9-3ZM311 410l8-5 9 17-8 5Z"/><circle cx="53" cy="91" r="6"/><circle cx="330" cy="110" r="6"/><circle cx="28" cy="390" r="7"/></g>
+  <g fill="var(--design-secondary)"><path d="m168 20 7 4-10 17-7-4ZM315 54l9 5-14 16-7-5ZM72 439l7-3 7 18-7 3ZM228 445l8 4-8 16-8-4Z"/><circle cx="230" cy="58" r="5"/><circle cx="304" cy="450" r="6"/></g>
+  <g fill="none" stroke="var(--design-secondary)" stroke-width="3"><path d="M17 150q25-30 12-45M345 320q-25 30-12 45M20 445q25-20 12-34M115 17q10 20 25 9"/></g>
+  <path d="M0 0Q180 90 360 0M0 480Q180 390 360 480" fill="none" stroke="var(--design-accent)" stroke-width="2" opacity=".5"/>
+ </symbol>
+ <symbol id="balloons" viewBox="0 0 360 480">
+  <g fill="none" stroke="var(--design-ink)" opacity=".45"><path d="M68 111q45 40 10 100M147 99q-27 27-6 66M279 117q-40 40-5 100"/></g>
+  <ellipse cx="62" cy="69" rx="33" ry="44" fill="var(--design-accent)" transform="rotate(-14 62 69)"/><ellipse cx="145" cy="59" rx="29" ry="39" fill="var(--design-secondary)"/>
+  <ellipse cx="288" cy="72" rx="35" ry="46" fill="var(--design-secondary)" transform="rotate(15 288 72)"/>
+  <g fill="white" opacity=".5"><ellipse cx="50" cy="54" rx="5" ry="13" transform="rotate(20 50 54)"/><ellipse cx="134" cy="47" rx="4" ry="10"/><ellipse cx="277" cy="56" rx="5" ry="14"/></g>
+  <use href="#star" transform="translate(228 45) scale(.6)"/><use href="#star" transform="translate(46 403)"/><use href="#star" transform="translate(307 438) scale(.65)"/>
+  <path d="M70 452Q180 402 290 452" fill="none" stroke="var(--design-accent)" stroke-width="2"/>
+ </symbol>
+ <symbol id="flowers" viewBox="0 0 360 480">
+  <g fill="none" stroke="var(--design-secondary)" stroke-width="2"><path d="M180 468 92 385M180 468 168 366M180 468 253 387M180 468 133 415M180 468 223 430"/></g>
+  <use href="#flower" transform="translate(89 380) scale(.8)"/><use href="#flower" transform="translate(167 358)"/><use href="#flower" transform="translate(254 382) scale(.8)"/>
+  <g fill="var(--design-secondary)"><path d="M154 443q-52 8-53-25 38-2 53 25ZM195 450q47-13 45-38-36 3-45 38ZM173 407q-39-5-32-28 28 3 32 28Z"/></g>
+  <use href="#flower" transform="translate(42 48) scale(.4)"/><use href="#flower" transform="translate(320 59) scale(.5)"/>
+  <path d="M88 48Q180 20 272 48" stroke="var(--design-accent)" fill="none" opacity=".6"/>
+ </symbol>
+ <symbol id="postcard" viewBox="0 0 360 480">
+  <rect x="16" y="16" width="328" height="448" rx="5" fill="none" stroke="var(--design-accent)" stroke-dasharray="3 6"/>
+  <path d="M270 37h53v63h-53z" fill="none" stroke="var(--design-secondary)" stroke-width="2" stroke-dasharray="4 3"/>
+  <path d="M297 79q-24-14-15-24 8-7 15 4 7-11 15-4 9 10-15 24Z" fill="var(--design-secondary)"/>
+  <g stroke="var(--design-accent)" fill="none"><path d="M39 55h99M39 63h73M39 71h86M62 405q40-20 76 0t76 0 76 0M100 422h160"/><circle cx="244" cy="70" r="24" opacity=".5"/></g>
+ </symbol>
+ <symbol id="diyas" viewBox="0 0 360 480">
+  <path d="M27 453V140Q27 70 180 27Q333 70 333 140V453Z" fill="none" stroke="var(--design-accent)"/>
+  <path d="M35 440V142Q35 81 180 36Q325 81 325 142V440" fill="none" stroke="var(--design-accent)" stroke-dasharray="2 7" opacity=".6"/>
+  <use href="#diya" transform="translate(180 403)"/><use href="#diya" transform="translate(88 418) scale(.6)"/><use href="#diya" transform="translate(272 418) scale(.6)"/>
+  <use href="#star" transform="translate(180 78)"/>
+ </symbol>
+ <symbol id="rangoli" viewBox="0 0 360 480">
+  <g transform="translate(180 28)" fill="none" stroke="var(--design-accent)" stroke-width="1.5"><circle r="85"/><circle r="72" stroke-dasharray="2 6"/><path d="M0 0Q-62-72 0-132Q62-72 0 0ZM0 0Q72-62 132 0Q72 62 0 0ZM0 0Q62 72 0 132Q-62 72 0 0ZM0 0Q-72 62-132 0Q-72-62 0 0Z"/><path d="M0 0Q-62-72 0-132Q62-72 0 0ZM0 0Q72-62 132 0Q72 62 0 0ZM0 0Q62 72 0 132Q-62 72 0 0ZM0 0Q-72 62-132 0Q-72-62 0 0Z" transform="rotate(45)"/></g>
+  <g fill="var(--design-secondary)"><circle cx="25" cy="172" r="4"/><circle cx="335" cy="172" r="4"/><circle cx="25" cy="327" r="4"/><circle cx="335" cy="327" r="4"/></g>
+  <g fill="none" stroke="var(--design-accent)"><path d="m42 437 138-36 138 36-138 27Z"/><path d="m72 437 108-28 108 28-108 20Z"/><circle cx="180" cy="437" r="12"/></g>
+ </symbol>
+ <symbol id="pine" viewBox="0 0 360 480">
+  <use href="#pine-branch" x="-4" y="0"/><use href="#pine-branch" transform="translate(364 0) scale(-1 1)"/><use href="#pine-branch" transform="translate(0 480) scale(1 -1)"/><use href="#pine-branch" transform="translate(360 480) scale(-1 -1)"/>
+  <g fill="var(--design-secondary)"><circle cx="38" cy="73" r="6"/><circle cx="56" cy="84" r="5"/><circle cx="322" cy="73" r="6"/><circle cx="304" cy="84" r="5"/><circle cx="38" cy="407" r="6"/><circle cx="322" cy="407" r="6"/></g>
+  <use href="#star" transform="translate(180 85)"/>
+ </symbol>
+ <symbol id="winter" viewBox="0 0 360 480">
+  <path d="M0 433Q110 379 218 430T360 417V480H0Z" fill="var(--design-accent)" opacity=".18"/>
+  <path d="M0 460Q120 417 240 460T360 443V480H0Z" fill="white" opacity=".6"/>
+  <use href="#snow" transform="translate(46 49)"/><use href="#snow" transform="translate(274 37) scale(.8)"/><use href="#snow" transform="translate(317 127) scale(.65)"/><use href="#snow" transform="translate(36 184) scale(.55)"/><use href="#snow" transform="translate(302 373) scale(.7)"/>
+  <g fill="var(--design-accent)" opacity=".5"><circle cx="119" cy="39" r="2"/><circle cx="210" cy="85" r="3"/><circle cx="314" cy="221" r="2"/><circle cx="45" cy="340" r="3"/><circle cx="245" cy="405" r="2"/></g>
+ </symbol>
+ <symbol id="fireworks" viewBox="0 0 360 480">
+  <use href="#burst" transform="translate(55 45) scale(.9)"/><use href="#burst" transform="translate(310 45) scale(.6)"/><use href="#burst" transform="translate(289 416) scale(.8)"/>
+  <g fill="var(--design-secondary)"><circle cx="155" cy="44" r="3"/><circle cx="244" cy="49" r="2"/><circle cx="327" cy="226" r="3"/><circle cx="35" cy="305" r="2"/><circle cx="98" cy="423" r="3"/><path d="m41 399 6-3 5 12-6 3ZM208 438l5-4 8 11-5 4Z"/></g>
+  <use href="#star" transform="translate(190 35) scale(.4)"/><use href="#star" transform="translate(50 438) scale(.6)"/>
+ </symbol>
+ <symbol id="golden" viewBox="0 0 360 480">
+  <path d="M19 165V19H165M195 19H341V165M341 315V461H195M165 461H19V315M27 145V27H145M215 27H333V145M333 335V453H215M145 453H27V335" fill="none" stroke="var(--design-accent)"/>
+  <use href="#burst" transform="translate(180 82) scale(.9)"/><use href="#burst" transform="translate(180 411) scale(.65)"/>
+  <g fill="var(--design-secondary)"><path d="m43 58 8-5 5 9-8 5ZM309 58l8 5-5 9-8-5ZM57 407l7 5-5 7-7-5ZM298 415l7-5 5 7-7 5Z"/></g>
+ </symbol>
+</svg>
