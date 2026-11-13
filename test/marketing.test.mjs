@@ -37,7 +37,8 @@ for(const [occasion,entry] of Object.entries(occasions).filter(([,entry])=>entry
   assert.ok(!landing.includes('class="hero-collections"'));
   assert.match(landing,/Create free card/);
   assert.match(landing,/No accounts needed/);
-  assert.equal((landing.match(/<details>/g)||[]).length,3);
+  assert.equal((landing.match(/<details>/g)||[]).length,4);
+  assert.match(landing,/For example,/); // Useful occasion-specific message guidance is present in initial HTML.
   assert.match(html,/id="createForm"/); // One existing creator, no parallel workflow.
   assert.equal((html.match(/id="createForm"/g)||[]).length,1);
   assert.equal((await send(path+'/',{method:'HEAD'})).status,200);
@@ -51,6 +52,31 @@ test('homepage links all occasions, and campaign URLs use clean canonical URLs',
  const campaign=await (await send('/birthday-card?src=uni_email&analytics=off')).text();
  assert.match(campaign,new RegExp(`rel="canonical" href="${site}/birthday-card"`));
  assert.ok(!campaign.includes('src=uni_email'));
+});
+
+test('homepage keeps its emotional hook while explaining signing, access and PDF export without JavaScript',async()=>{
+ const response=await send('/');
+ const html=await response.text();
+ const head=html.slice(0,html.indexOf('</head>'));
+ const home=html.slice(html.indexOf('<section id="homeView"'),html.indexOf('<section id="createView"'));
+ assert.match(head,/<title>Free Online Group Greeting Cards \| GroupNote<\/title>/);
+ assert.match(head,/<meta property="og:title" content="Free Online Group Greeting Cards \| GroupNote"/);
+ const description=/<meta name="description" content="([^"]+)"/.exec(head)[1];
+ assert.ok(head.includes(`property="og:description" content="${description}"`));
+ assert.ok(shell.includes(`<meta name="description" content="${description}"`));
+ assert.match(home,/<h1>Little messages\.<br\/><em>Big feelings\.<\/em><\/h1>/);
+ assert.match(home,/class="hero-subtitle">[^<]*free online group greeting card/);
+ const faq=home.slice(home.indexOf('<section class="occasion-faq"'),home.indexOf('<div class="bottom-banner"'));
+ assert.equal((faq.match(/<details>/g)||[]).length,5);
+ assert.match(faq,/up to 200 messages/);
+ assert.match(faq,/Anyone with the invitation link can read/);
+ assert.match(faq,/no sign-in or password check/);
+ assert.match(faq,/private organiser link/);
+ assert.match(faq,/close contributions/);
+ assert.match(faq,/reopen contributions/);
+ assert.match(faq,/Save as PDF/);
+ assert.ok(!html.includes('<!-- home-faq -->'));
+ assert.equal((home.match(/id="faqHeading"/g)||[]).length,1);
 });
 
 test('homepage renders six linked design previews in the hero before the how-it-works section',async()=>{

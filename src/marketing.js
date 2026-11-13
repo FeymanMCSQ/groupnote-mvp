@@ -59,6 +59,29 @@ const pages = {
 
 const marketingPaths = ['/', ...Object.keys(pages)];
 
+const homeTitle = 'Free Online Group Greeting Cards | GroupNote';
+const homeDescription = 'Make a free group greeting card online for birthdays, farewells and thank-yous. Share one link, collect messages without accounts, and save as PDF.';
+const homeQuestions = [
+ ['How does an online group greeting card work?', 'Choose an occasion and design, add your greeting, then share the invitation link with your group. Everyone opens the same card and adds their name and message in their browser. When the messages are ready, send that card link to the recipient.'],
+ ['Is GroupNote free, and do people need accounts?', 'GroupNote is free to create and sign. Organisers and contributors do not need accounts, a subscription or payment details. Each card can collect up to 200 messages.'],
+ ['Can I finish collecting messages before sending the card?', 'Yes. Keep the private organiser link you receive when you create the card. Use it to close contributions before sharing the finished card with the recipient. You can reopen contributions if someone needs to sign later.'],
+ ['Can I save or print the finished card?', 'Open the card and choose Save as PDF. Your browser opens its print dialog, where you can save a PDF or choose a printer. Check the print preview before saving, and enable background graphics if you want the design colours.'],
+ ['Who can open the card and read its messages?', 'Anyone with the invitation link can read the card and, while contributions are open, add a message. There is no sign-in or password check. Share it only with the people you intend, and keep the separate organiser link private. Public search engines are instructed not to index individual cards.']
+];
+
+const writingQuestions = {
+ Farewell: ['What can we write in a colleague’s leaving card?', 'Share a favourite moment, thank them for something specific and wish them well in their next chapter. For example, “Thank you for helping me find my feet on the team. I’ll miss our Monday coffee breaks. Good luck with the new role!”'],
+ Birthday: ['What can we write in a group birthday card?', 'Mix a birthday wish with a shared memory or something you are looking forward to together. For example, “Happy birthday! Here’s to another year of weekend walks, questionable karaoke and celebrating the little wins with you.” Each person can add their own note.'],
+ 'Thank you': ['How can we make our thank-you messages more personal?', 'Name what the person did and the difference it made. For example, “Thank you for staying after every rehearsal to help us practise. Your patience gave us the confidence to get on stage.” Different memories from your group make the appreciation specific.'],
+ Diwali: ['What can our group write in a Diwali card?', 'Add a greeting that suits your relationship with the recipient, alongside your own wishes for the celebration. For example, “Wishing you and your loved ones a joyful Diwali, with light, happiness and time together.” Group members can each choose their own wording.'],
+ Christmas: ['What can a team write in a shared Christmas card?', 'Combine festive wishes with a genuine thank-you from the year. For example, “Merry Christmas, and thank you for bringing so much kindness to our team. Wishing you a restful break and happy moments with your favourite people.” Contributors can write their own individual greetings.'],
+ 'New Year': ['What can we write in a group New Year card?', 'Reflect on a moment you shared and something you hope the new year brings. For example, “Thank you for the adventures and encouragement this year. Here’s to new plans, more time together and celebrating whatever comes next.” You can put the year in your own title.']
+};
+
+function faq(heading, questions) {
+ return `<section class="occasion-faq" aria-labelledby="faqHeading"><p class="kicker">A FEW LITTLE DETAILS</p><h2 id="faqHeading">${escape(heading)}</h2>${questions.map(([q,a])=>`<details><summary>${escape(q)}</summary><p>${escape(a)}</p></details>`).join('')}</section>`;
+}
+
 function origin(value) {
  const url = new URL(value);
  if (!['https:','http:'].includes(url.protocol) || url.username || url.password || url.pathname !== '/' || url.search || url.hash) throw Error('Invalid public site origin');
@@ -77,7 +100,7 @@ function landing(page) {
  <div class="hero-shell"><div class="hero-copy"><p class="eyebrow">A GROUPNOTE FOR ${page.occasion.toUpperCase()}</p><h1>${page.heading}<br/><em>${page.emphasis}</em></h1><p class="hero-subtitle">${page.intro}</p><div class="hero-actions"><a class="btn btn-coral" id="heroCreate" href="${cta}">Create free card <span aria-hidden="true">↗</span></a><button class="btn btn-text" id="seeSample">See an example <span aria-hidden="true">→</span></button></div><div class="hero-benefits"><span>✓ Free to create</span><span>✓ No accounts needed</span><span>✓ One shared link</span></div></div>
  <div class="occasion-example" aria-label="Example ${page.occasion.toLowerCase()} card"><p class="preview-label">A LITTLE INSPIRATION</p>${miniature(defaultTemplate(page.occasion),{occasion:page.occasion,className:'live-preview'})}<article class="message-bubble"><span aria-hidden="true">💛</span><p>${page.note}</p><small>An example message from your group</small></article></div></div>
  <div class="steps" id="how"><p class="kicker">ONE CARD, EVERYONE’S WORDS</p><h2>A little effort. <em>A lot of love.</em></h2><div class="steps-grid">${[0,2,4].map((index,i)=>`<article><span class="step-icon icon-${['orange','mint','lavender'][i]}" aria-hidden="true">${['✎','↗','♡'][i]}</span><div class="step-number">0${i+1}</div><h3>${page.steps[index]}</h3><p>${page.steps[index+1]}</p></article>`).join('')}</div></div>
- <section class="occasion-faq" aria-labelledby="faqHeading"><p class="kicker">A FEW LITTLE DETAILS</p><h2 id="faqHeading">Your ${page.occasion.toLowerCase()} card questions</h2>${page.faqs.map(([q,a])=>`<details><summary>${q}</summary><p>${a}</p></details>`).join('')}</section>
+ ${faq(`Your ${page.occasion.toLowerCase()} card questions`, [...page.faqs, writingQuestions[page.occasion]])}
  <div class="bottom-banner"><div><p class="kicker">BETTER SAID TOGETHER</p><h2>Make their ${page.occasion.toLowerCase()} <em>one to remember.</em></h2></div><a id="bottomCreate" class="btn btn-dark" href="${cta}">Create free card <span aria-hidden="true">↗</span></a></div>
  <aside class="related-occasions"><p class="kicker">MORE MOMENTS TO SHARE</p><nav aria-label="Related occasions">${related.map(([occasion,entry])=>`<a href="/${entry.slug}">${escape(occasion)} cards</a>`).join('')}</nav></aside>
  </section>`;
@@ -109,9 +132,9 @@ export async function marketing(request, env) {
  if(!shell||!headers.get('content-type')?.includes('text/html'))return new Response(request.method==='HEAD'?null:asset.body,{status:asset.status,headers});
  let html=await asset.text();
  if(page)html=html.replace(/<!-- home:start -->[\s\S]*?<!-- home:end -->/,landing(page));
- else html=html.replace('<!-- collection-preview -->',collectionPreview());
- const title=page?.title||'GroupNote — Little messages. Big feelings.';
- const description=page?.description||'Create a beautiful group card. Invite friends and teammates to add notes, then share one unforgettable keepsake. Free to start.';
+ else html=html.replace('<!-- collection-preview -->',collectionPreview()).replace('<!-- home-faq -->',faq('A group card, without the guesswork.',homeQuestions));
+ const title=page?.title||homeTitle;
+ const description=page?.description||homeDescription;
  html=html.replace(/<title>[\s\S]*?<\/title>/,`<title>${escape(title)}</title>`)
   .replace(/<meta name="description"[^>]*>/,`<meta name="description" content="${escape(description)}"/>`);
  if(publicPage){
