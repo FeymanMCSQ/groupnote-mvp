@@ -67,7 +67,8 @@ test('homepage keeps its emotional hook while explaining signing, access and PDF
  assert.match(home,/<h1>Little messages\.<br\/><em>Big feelings\.<\/em><\/h1>/);
  assert.match(home,/class="hero-subtitle">[^<]*free online group greeting card/);
  const faq=home.slice(home.indexOf('<section class="occasion-faq"'),home.indexOf('<div class="bottom-banner"'));
- assert.equal((faq.match(/<details>/g)||[]).length,5);
+ assert.equal((faq.match(/<details>/g)||[]).length,6);
+ assert.match(faq,/different places or time zones/);
  assert.match(faq,/up to 200 messages/);
  assert.match(faq,/Anyone with the invitation link can read/);
  assert.match(faq,/no sign-in or password check/);
@@ -101,11 +102,84 @@ test('private links, creator queries and API content are noindex, without privat
   const html=await response.text();
   assert.match(html,/name="robots" content="noindex, nofollow"/);
   assert.ok(!html.includes('rel="canonical"'));
+  assert.ok(!html.includes('application/ld+json'));
   assert.ok(!html.includes('private-test-key'));
  }
  assert.equal((await send('/api/health')).headers.get('x-robots-tag'),'noindex, nofollow');
  const headers=readFileSync(new URL('../public/_headers',import.meta.url),'utf8');
  assert.match(headers,/\/\*\s+X-Robots-Tag: noindex, nofollow/);
+});
+
+test('public structured data is factual, parseable and follows the configured origin on every page',async()=>{
+ const paths=['/',...Object.values(occasions).filter(entry=>entry.slug).map(entry=>'/'+entry.slug)];
+ for(const publicOrigin of [site,'https://future.example','http://localhost:8787']){
+  for(const path of paths){
+   const html=await (await send(path+'?src=uni_email',{}, {...env,PUBLIC_SITE_ORIGIN:publicOrigin})).text();
+   const scripts=[...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+   assert.equal(scripts.length,1);
+   const data=JSON.parse(scripts[0][1]);
+   assert.equal(data['@context'],'https://schema.org');
+   const [website,app,page]=data['@graph'];
+   assert.deepEqual(website,{'@type':'WebSite','@id':publicOrigin+'/#website',url:publicOrigin+'/',name:'GroupNote'});
+   assert.deepEqual(app,{'@type':'WebApplication','@id':publicOrigin+'/#application',url:publicOrigin+'/',name:'GroupNote',
+    description:'Make a free group greeting card online for birthdays, farewells and thank-yous. Share one link, collect messages without accounts, and save as PDF.',
+    applicationCategory:'LifestyleApplication',offers:{'@type':'Offer',price:0},isAccessibleForFree:true});
+   assert.equal(page['@type'],'WebPage');
+   assert.equal(page.url,publicOrigin+path);
+   assert.equal(page['@id'],page.url+'#webpage');
+   assert.equal(page.isPartOf['@id'],website['@id']);
+   assert.equal(page.about['@id'],app['@id']);
+   assert.ok(html.includes(`<title>${page.name}</title>`));
+   assert.ok(html.includes(`name="description" content="${page.description}"`));
+   assert.ok(html.includes(`rel="canonical" href="${page.url}"`));
+   assert.ok(!scripts[0][1].includes('uni_email'));
+  }
+ }
+ // With no production binding, local preview still has valid, loopback identities.
+ const local=await (await send('/',{}, {...env,PUBLIC_SITE_ORIGIN:undefined})).text();
+ assert.match(local,/"url":"https:\/\/local.test\/"/);
+ assert.match(local,/rel="canonical" href="https:\/\/local.test\/"/);
+});
+
+test('crawler agents see the same public content and wildcard robots permission as people',async()=>{
+ const agents=['OAI-SearchBot','ChatGPT-User','Googlebot','bingbot','PerplexityBot','GPTBot'];
+ for(const path of ['/', '/birthday-card']){
+  const human=await (await send(path)).text();
+  for(const agent of agents){
+   const response=await send(path,{headers:{'user-agent':agent}});
+   assert.equal(response.status,200);
+   assert.equal(response.headers.get('x-robots-tag'),'index, follow');
+   assert.equal(await response.text(),human);
+   assert.equal(await (await send('/robots.txt',{headers:{'user-agent':agent}})).text(),`User-agent: *\nAllow: /\nSitemap: ${site}/sitemap.xml\n`);
+  }
+ }
+});
+
+test('alternating private and campaign requests cannot share indexing directives or structured data',async()=>{
+ for(const path of ['/', '/farewell-card']){
+  for(const suffix of ['?key=secret','?src=uni_email','?card=private','?analytics=off','?occasion=Birthday','']){
+   const privateState=/key=|card=|occasion=/.test(suffix);
+   const response=await send(path+suffix);
+   const html=await response.text();
+   assert.equal(response.headers.get('cache-control'),'no-store');
+   assert.equal(response.headers.get('etag'),null);
+   assert.equal(response.headers.get('x-robots-tag'),privateState?'noindex, nofollow':'index, follow');
+   assert.equal(html.includes('application/ld+json'),!privateState);
+   assert.equal(html.includes('rel="canonical"'),!privateState);
+  }
+ }
+});
+
+test('an unsuccessful shell response is never promoted to an indexable marketing page',async()=>{
+ for(const status of [404,500]){
+  const response=await send('/',{}, {...env,ASSETS:{fetch:async()=>new Response(shell,{status,headers:{'content-type':'text/html'}})}});
+  assert.equal(response.status,status);
+  assert.equal(response.headers.get('x-robots-tag'),'noindex, nofollow');
+  const html=await response.text();
+  assert.match(html,/name="robots" content="noindex, nofollow"/);
+  assert.ok(!html.includes('application/ld+json'));
+  assert.ok(!html.includes('rel="canonical"'));
+ }
 });
 
 test('sitemap lists only seven public marketing pages, and robots allows noindex directives to be crawled',async()=>{

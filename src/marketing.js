@@ -64,6 +64,7 @@ const homeDescription = 'Make a free group greeting card online for birthdays, f
 const homeQuestions = [
  ['How does an online group greeting card work?', 'Choose an occasion and design, add your greeting, then share the invitation link with your group. Everyone opens the same card and adds their name and message in their browser. When the messages are ready, send that card link to the recipient.'],
  ['Is GroupNote free, and do people need accounts?', 'GroupNote is free to create and sign. Organisers and contributors do not need accounts, a subscription or payment details. Each card can collect up to 200 messages.'],
+ ['Can people sign remotely, and which occasions are supported?', 'Yes. Send the invitation link to people in different places or time zones. They can sign in their browser while contributions are open; nobody needs to join a call. Choose birthday, farewell, thank-you, Christmas, Diwali or New Year designs, or a classic look for another occasion.'],
  ['Can I finish collecting messages before sending the card?', 'Yes. Keep the private organiser link you receive when you create the card. Use it to close contributions before sharing the finished card with the recipient. You can reopen contributions if someone needs to sign later.'],
  ['Can I save or print the finished card?', 'Open the card and choose Save as PDF. Your browser opens its print dialog, where you can save a PDF or choose a printer. Check the print preview before saving, and enable background graphics if you want the design colours.'],
  ['Who can open the card and read its messages?', 'Anyone with the invitation link can read the card and, while contributions are open, add a message. There is no sign-in or password check. Share it only with the people you intend, and keep the separate organiser link private. Public search engines are instructed not to index individual cards.']
@@ -80,6 +81,20 @@ const writingQuestions = {
 
 function faq(heading, questions) {
  return `<section class="occasion-faq" aria-labelledby="faqHeading"><p class="kicker">A FEW LITTLE DETAILS</p><h2 id="faqHeading">${escape(heading)}</h2>${questions.map(([q,a])=>`<details><summary>${escape(q)}</summary><p>${escape(a)}</p></details>`).join('')}</section>`;
+}
+
+function structuredData(site, path, title, description) {
+ const root=site+'/';
+ const data={'@context':'https://schema.org','@graph':[
+  {'@type':'WebSite','@id':root+'#website',url:root,name:'GroupNote'},
+  {'@type':'WebApplication','@id':root+'#application',url:root,name:'GroupNote',
+   description:homeDescription,applicationCategory:'LifestyleApplication',
+   offers:{'@type':'Offer',price:0},isAccessibleForFree:true},
+  {'@type':'WebPage','@id':site+path+'#webpage',url:site+path,name:title,description,
+   isPartOf:{'@id':root+'#website'},about:{'@id':root+'#application'}}
+ ]};
+ // Escape script delimiters even if future configured/copy values contain HTML.
+ return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g,'\\u003c')}</script>`;
 }
 
 function origin(value) {
@@ -137,12 +152,13 @@ export async function marketing(request, env) {
  const description=page?.description||homeDescription;
  html=html.replace(/<title>[\s\S]*?<\/title>/,`<title>${escape(title)}</title>`)
   .replace(/<meta name="description"[^>]*>/,`<meta name="description" content="${escape(description)}"/>`);
- if(publicPage){
+ if(publicPage && asset.status===200){
   headers.set('X-Robots-Tag','index, follow');
   html=html.replace('<meta name="robots" content="noindex, nofollow"/>',`<meta name="robots" content="index, follow"/>
 <link rel="canonical" href="${escape(site+path)}"/>
 <meta property="og:type" content="website"/><meta property="og:site_name" content="GroupNote"/>
 <meta property="og:title" content="${escape(title)}"/><meta property="og:description" content="${escape(description)}"/><meta property="og:url" content="${escape(site+path)}"/>`);
+  html=html.replace('</head>',structuredData(site,path,title,description)+'</head>');
  }
  // Verification token belongs to the operator. It is public and optional.
  if(env.GOOGLE_SITE_VERIFICATION)html=html.replace('</head>',`<meta name="google-site-verification" content="${escape(env.GOOGLE_SITE_VERIFICATION)}"/></head>`);
